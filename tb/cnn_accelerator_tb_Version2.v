@@ -28,6 +28,10 @@ module cnn_accelerator_tb;
     integer test_num;
     reg signed [WIDTH-1:0] expected_result;
     integer i;
+
+`ifdef USE_GENERATED_IMAGE_DATA
+`include "generated_windows.vh"
+`endif
     
     // DUT instantiation
     cnn_accelerator #(
@@ -80,6 +84,9 @@ module cnn_accelerator_tb;
         rst = 0;
         #(CLK_PERIOD);
         
+`ifdef USE_GENERATED_IMAGE_DATA
+        run_generated_tests();
+`else
         // Test 1: Simple uniform inputs
         test_num = 1;
         $display("\n--- Test %0d: Uniform inputs (all 1s) ---", test_num);
@@ -191,6 +198,7 @@ module cnn_accelerator_tb;
         // Expected: 80 / 9 / 1 = 8 (integer division)
         expected_result = 32'd8;
         run_test();
+`endif
         
         // Wait for final operations
         #(CLK_PERIOD * 10);
@@ -226,6 +234,45 @@ module cnn_accelerator_tb;
             #(CLK_PERIOD * 5);
         end
     endtask
+
+`ifdef USE_GENERATED_IMAGE_DATA
+    task load_generated_window;
+        input integer window_index;
+        integer patch_index;
+        begin
+            for (patch_index = 0; patch_index < NUM_INPUTS; patch_index = patch_index + 1) begin
+                input_data[patch_index] = generated_image_windows[window_index][patch_index];
+                kernel[patch_index] = generated_kernel[patch_index];
+            end
+            scale_factor = GENERATED_SCALE_FACTOR;
+            expected_result = generated_expected_results[window_index];
+        end
+    endtask
+
+    task run_generated_tests;
+        integer window_index;
+        begin
+            $display("\n========================================");
+            $display("Generated Image Data Mode");
+            $display("Total windows: %0d", GENERATED_NUM_WINDOWS);
+            $display("Scale factor: %0d", GENERATED_SCALE_FACTOR);
+            $display("========================================");
+
+            for (window_index = 0; window_index < GENERATED_NUM_WINDOWS; window_index = window_index + 1) begin
+                test_num = window_index + 1;
+                load_generated_window(window_index);
+                $display(
+                    "\n--- Generated window %0d/%0d at row=%0d col=%0d ---",
+                    test_num,
+                    GENERATED_NUM_WINDOWS,
+                    generated_window_rows[window_index],
+                    generated_window_cols[window_index]
+                );
+                run_test();
+            end
+        end
+    endtask
+`endif
     
     // Timeout watchdog
     initial begin

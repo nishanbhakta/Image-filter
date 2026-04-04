@@ -28,32 +28,37 @@ module divide_by_9_tb ();
         $dumpvars(0, divide_by_9_tb);
     end
 
+    task run_divide_by_9;
+        input signed [71:0] dividend_value;
+        input signed [71:0] expected_quotient;
+        begin
+            @(negedge clk);
+            dividend = dividend_value;
+            start = 1;
+
+            @(negedge clk);
+            start = 0;
+
+            @(posedge done);
+            #1;
+            $display(
+                "Divide-by-9: %0d / 9 = %0d (Expected: %0d)",
+                dividend_value, quotient, expected_quotient
+            );
+        end
+    endtask
+
     initial begin
         rst = 1;
         start = 0;
         dividend = 0;
-        #10 rst = 0;
 
-        dividend = 72'sd81;
-        start = 1;
-        #10 start = 0;
-        wait(done);
-        #10;
-        $display("Test 1: 81 / 9 = %d (Expected: 9)", quotient);
+        @(negedge clk);
+        rst = 0;
 
-        dividend = -72'sd10;
-        start = 1;
-        #10 start = 0;
-        wait(done);
-        #10;
-        $display("Test 2: -10 / 9 = %d (Expected: -1)", quotient);
-
-        dividend = 72'sd0;
-        start = 1;
-        #10 start = 0;
-        wait(done);
-        #10;
-        $display("Test 3: 0 / 9 = %d (Expected: 0)", quotient);
+        run_divide_by_9(72'sd81, 72'sd9);
+        run_divide_by_9(-72'sd10, -72'sd1);
+        run_divide_by_9(72'sd0, 72'sd0);
 
         $finish;
     end

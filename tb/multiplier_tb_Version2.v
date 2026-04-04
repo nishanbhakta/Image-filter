@@ -5,7 +5,8 @@ module multiplier_tb ();
     reg clk;
     reg rst;
     reg start;
-    reg signed [31:0] a, b;
+    reg signed [31:0] a;
+    reg signed [31:0] b;
     wire signed [63:0] product;
     wire done;
 
@@ -29,36 +30,40 @@ module multiplier_tb ();
         $dumpvars(0, multiplier_tb);
     end
 
+    task run_multiply;
+        input signed [31:0] a_value;
+        input signed [31:0] b_value;
+        input signed [63:0] expected_product;
+        begin
+            @(negedge clk);
+            a = a_value;
+            b = b_value;
+            start = 1;
+
+            @(negedge clk);
+            start = 0;
+
+            @(posedge done);
+            #1;
+            $display(
+                "Multiply: %0d * %0d = %0d (Expected: %0d)",
+                a_value, b_value, product, expected_product
+            );
+        end
+    endtask
+
     initial begin
         rst = 1;
         start = 0;
         a = 0;
         b = 0;
-        #10 rst = 0;
 
-        a = 32'sd5;
-        b = 32'sd3;
-        start = 1;
-        #10 start = 0;
-        wait(done);
-        #10;
-        $display("Test 1: 5 * 3 = %d (Expected: 15)", product);
+        @(negedge clk);
+        rst = 0;
 
-        a = 32'sd100;
-        b = 32'sd200;
-        start = 1;
-        #10 start = 0;
-        wait(done);
-        #10;
-        $display("Test 2: 100 * 200 = %d (Expected: 20000)", product);
-
-        a = -32'sd50;
-        b = 32'sd4;
-        start = 1;
-        #10 start = 0;
-        wait(done);
-        #10;
-        $display("Test 3: -50 * 4 = %d (Expected: -200)", product);
+        run_multiply(32'sd5, 32'sd3, 64'sd15);
+        run_multiply(32'sd100, 32'sd200, 64'sd20000);
+        run_multiply(-32'sd50, 32'sd4, -64'sd200);
 
         $finish;
     end

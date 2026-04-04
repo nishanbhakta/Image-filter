@@ -52,7 +52,7 @@ module cnn_accelerator #(
         .product(mult_product), .done(mult_done)
     );
     
-    mac #(.WIDTH(WIDTH), .ACC_WIDTH(ACC_WIDTH)) mac_inst (
+    mac_accumulator #(.WIDTH(WIDTH), .ACC_WIDTH(ACC_WIDTH)) mac_inst (
         .clk(clk), .rst(rst), .enable(mac_enable),
         .reset_acc(mac_reset), .product_in(mult_product),
         .result(mac_result)

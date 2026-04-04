@@ -22,6 +22,7 @@ SRCS = $(SRC_DIR)/multiplier.v \
 TB_MULTIPLIER = $(TB_DIR)/multiplier_tb_Version2.v
 TB_MAC = $(TB_DIR)/mac_tb_Version2.v
 TB_DIVIDER = $(TB_DIR)/divider_tb_Version2.v
+TB_DIV9 = $(TB_DIR)/divide_by_9_Version2.v
 TB_CNN = $(TB_DIR)/cnn_accelerator_tb_Version2.v
 
 # Output files
@@ -61,7 +62,7 @@ multiplier: $(OUT_DIR)
 .PHONY: mac
 mac: $(OUT_DIR)
 	@echo "=== Compiling MAC ==="
-	$(IVERILOG) -g2012 -o $(OUT_DIR)/mac.vvp $(SRC_DIR)/MAC.v $(TB_MAC)
+	$(IVERILOG) -g2012 -o $(OUT_DIR)/mac.vvp $(SRC_DIR)/multiplier.v $(SRC_DIR)/MAC.v $(TB_MAC)
 	@echo "=== Running MAC Simulation ==="
 	cd $(OUT_DIR) && $(VVP) mac.vvp
 	@if [ -f mac_tb.vcd ]; then mv mac_tb.vcd $(VCD_DIR)/; fi
@@ -75,9 +76,18 @@ divider: $(OUT_DIR)
 	cd $(OUT_DIR) && $(VVP) divider.vvp
 	@if [ -f divider_tb.vcd ]; then mv divider_tb.vcd $(VCD_DIR)/; fi
 
+# Divide-by-9 simulation
+.PHONY: div9
+div9: $(OUT_DIR)
+	@echo "=== Compiling Divide-by-9 ==="
+	$(IVERILOG) -g2012 -o $(OUT_DIR)/div9.vvp $(SRC_DIR)/divide_by_9_Version2.v $(TB_DIV9)
+	@echo "=== Running Divide-by-9 Simulation ==="
+	cd $(OUT_DIR) && $(VVP) div9.vvp
+	@if [ -f divide_by_9_tb.vcd ]; then mv divide_by_9_tb.vcd $(VCD_DIR)/; fi
+
 # Run all component tests
 .PHONY: test_all
-test_all: multiplier mac divider cnn_accelerator
+test_all: multiplier mac divider div9 cnn_accelerator
 	@echo "=== All Tests Complete ==="
 
 # View waveform
@@ -115,6 +125,7 @@ help:
 	@echo "  multiplier       - Run multiplier testbench"
 	@echo "  mac              - Run MAC testbench"
 	@echo "  divider          - Run divider testbench"
+	@echo "  div9             - Run divide-by-9 testbench"
 	@echo "  test_all         - Run all testbenches"
 	@echo "  wave_cnn         - View CNN waveform in GTKWave"
 	@echo "  wave_mult        - View multiplier waveform"

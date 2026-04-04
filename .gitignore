@@ -91,3 +91,7 @@ __pycache__/
 
 # Simulation output directory
 sim_output/
+
+# Generated image preprocessing outputs
+generated_data/
+generated_data_*/

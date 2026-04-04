@@ -1,7 +1,7 @@
 @echo off
 REM CNN Accelerator Simulation Script for Windows
 REM Usage: sim.bat [test_name]
-REM Available tests: cnn, multiplier, mac, divider, all
+REM Available tests: cnn, multiplier, mac, divider, div9, all
 
 set SRC_DIR=src
 set TB_DIR=tb
@@ -24,6 +24,7 @@ if /I "%TEST%"=="cnn" goto run_cnn
 if /I "%TEST%"=="multiplier" goto run_multiplier
 if /I "%TEST%"=="mac" goto run_mac
 if /I "%TEST%"=="divider" goto run_divider
+if /I "%TEST%"=="div9" goto run_div9
 if /I "%TEST%"=="all" goto run_all
 if /I "%TEST%"=="clean" goto clean
 if /I "%TEST%"=="help" goto help
@@ -87,6 +88,7 @@ goto end
 echo.
 echo === Compiling MAC ===
 iverilog -g2012 -o %OUT_DIR%\mac.vvp ^
+    %SRC_DIR%\multiplier.v ^
     %SRC_DIR%\MAC.v ^
     %TB_DIR%\mac_tb_Version2.v
 
@@ -129,10 +131,34 @@ if exist "%OUT_DIR%\divider_tb.vcd" move /Y "%OUT_DIR%\divider_tb.vcd" "%VCD_DIR
 echo === Simulation Complete ===
 goto end
 
+:run_div9
+echo.
+echo === Compiling Divide-by-9 ===
+iverilog -g2012 -o %OUT_DIR%\div9.vvp ^
+    %SRC_DIR%\divide_by_9_Version2.v ^
+    %TB_DIR%\divide_by_9_Version2.v
+
+if %ERRORLEVEL% NEQ 0 (
+    echo Compilation failed!
+    exit /b 1
+)
+
+echo === Running Divide-by-9 Simulation ===
+cd %OUT_DIR%
+vvp div9.vvp
+cd ..
+
+if exist "divide_by_9_tb.vcd" move /Y "divide_by_9_tb.vcd" "%VCD_DIR%\"
+if exist "%OUT_DIR%\divide_by_9_tb.vcd" move /Y "%OUT_DIR%\divide_by_9_tb.vcd" "%VCD_DIR%\"
+
+echo === Simulation Complete ===
+goto end
+
 :run_all
 call :run_multiplier
 call :run_mac
 call :run_divider
+call :run_div9
 call :run_cnn
 echo.
 echo === All Tests Complete ===
@@ -157,6 +183,7 @@ echo   cnn         - Run CNN accelerator simulation (default)
 echo   multiplier  - Run multiplier testbench
 echo   mac         - Run MAC testbench
 echo   divider     - Run divider testbench
+echo   div9        - Run divide-by-9 testbench
 echo   all         - Run all testbenches
 echo   clean       - Remove all simulation outputs
 echo   help        - Show this help message

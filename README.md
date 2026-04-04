@@ -1,188 +1,106 @@
 # CNN Hardware Accelerator
 
-A Verilog implementation of a CNN hardware accelerator that performs the operation:
+A Verilog implementation of a small CNN-style accelerator that computes:
 
-```
-Output = (Σ(xi × hi)) / 9 / K
+```text
+output = (sum(xi * hi)) / 9 / K
 ```
 
 Where:
-- `xi` = input data (9 values)
-- `hi` = kernel/filter weights (9 values)
+- `xi` = a 3x3 image patch flattened into 9 signed values
+- `hi` = a 3x3 kernel flattened into 9 signed values
 - `K` = scale factor
-- Division by 9 is optimized using fixed-point reciprocal multiplication
 
 ## Architecture
 
-### Modules
+### Core modules
 
-1. **cnn_accelerator_Version2.v** - Top-level module integrating all components
-2. **controller_Version2.v** - FSM controlling the data pipeline
-3. **multiplier.v** - 32-bit sequential shift-add multiplier
-4. **MAC.v** - Multiply-Accumulate unit
-5. **divide_by_9_Version2.v** - Optimized divider using reciprocal multiplication
-6. **divider_Version2.v** - General-purpose sequential divider
+1. **cnn_accelerator_Version2.v** - top-level datapath and control integration
+2. **controller_Version2.v** - FSM for multiply, accumulate, divide-by-9, and final divide
+3. **multiplier.v** - 32x32 signed sequential shift-add multiplier
+4. **MAC.v** - standalone 32x32-to-72-bit MAC plus pipeline accumulator helper
+5. **divide_by_9_Version2.v** - exact signed divide-by-9 using a constant restoring divider
+6. **divider_Version2.v** - parameterized signed restoring divider
 
-### Directory Structure
+### Project layout
 
-```
+```text
 CNN/
-├── src/                          # Source files
-│   ├── cnn_accelerator_Version2.v
-│   ├── controller_Version2.v
-│   ├── multiplier.v
-│   ├── MAC.v
-│   ├── divider_Version2.v
-│   └── divide_by_9_Version2.v
-├── tb/                           # Testbenches
-│   ├── cnn_accelerator_tb_Version2.v
-│   ├── multiplier_tb_Version2.v
-│   ├── mac_tb_Version2.v
-│   └── divider_tb_Version2.v
-├── sim_output/                   # Generated during simulation
-│   └── waveforms/               # VCD waveform files
-├── Makefile                      # Linux/Unix simulation script
-├── sim.bat                       # Windows simulation script
-└── README.md                     # This file
+|-- docs/
+|-- scripts/
+|-- sim_output/
+|-- src/
+|-- tb/
+|-- Makefile
+|-- sim.bat
+`-- README.md
 ```
 
-## Prerequisites
+## What Matches The Assignment
 
-### For Simulation
+- Real shift-add multiplier RTL is implemented in [src/multiplier.v](src/multiplier.v)
+- Exact divide-by-9 without `/` is implemented in [src/divide_by_9_Version2.v](src/divide_by_9_Version2.v)
+- Standalone 32-bit-input, 72-bit-accumulator MAC is implemented in [src/MAC.v](src/MAC.v)
+- Signed restoring divider is implemented in [src/divider_Version2.v](src/divider_Version2.v)
+- Standalone and top-level simulations pass with Icarus Verilog
 
-- **Icarus Verilog** - Open source Verilog simulator
-  - Windows: https://bleyer.org/icarus/
-  - Linux: `sudo apt-get install iverilog`
-  - macOS: `brew install icarus-verilog`
+The assignment-oriented design discussion, Nexys A7 resource summary, and estimated area/performance tables are in [docs/nexys_a7_design_report.md](docs/nexys_a7_design_report.md).
 
-- **GTKWave** (Optional) - Waveform viewer
-  - Windows: http://gtkwave.sourceforge.net/
-  - Linux: `sudo apt-get install gtkwave`
-  - macOS: `brew install gtkwave`
-
-## Running Simulations
+## Simulation
 
 ### Windows
 
-Use the provided batch script:
+Run the top-level testbench:
 
-```batch
-# Run CNN accelerator testbench (default)
-sim.bat
-
-# Run specific testbench
-sim.bat multiplier
-sim.bat mac
-sim.bat divider
-sim.bat cnn
-
-# Run all tests
-sim.bat all
-
-# Clean outputs
-sim.bat clean
-
-# Show help
-sim.bat help
+```powershell
+.\sim.bat cnn
 ```
 
-### Linux/Unix/macOS
+Run all component benches:
 
-Use the Makefile:
+```powershell
+.\sim.bat all
+```
+
+### Linux / macOS
 
 ```bash
-# Run CNN accelerator testbench (default)
 make
-
-# Run specific testbench
-make multiplier
-make mac
-make divider
-make cnn_accelerator
-
-# Run all tests
 make test_all
-
-# View waveforms (requires GTKWave)
-make wave_cnn
-make wave_mult
-make wave_mac
-make wave_div
-
-# Clean outputs
-make clean
-
-# Show help
-make help
 ```
 
-## Testbench Details
+## Image-Driven Flow
 
-### CNN Accelerator Testbench
+You can preprocess a real image into 3x3 windows and run the generated-data simulation in one command:
 
-The top-level testbench (`cnn_accelerator_tb_Version2.v`) includes 8 comprehensive test cases:
+```powershell
+python scripts\run_image_sim.py path\to\image.png --resize 28x28 --kernel "1,0,-1,1,0,-1,1,0,-1" --scale-factor 1
+```
 
-1. **Test 1**: Uniform inputs (all 1s)
-2. **Test 2**: Uniform inputs with scale factor
-3. **Test 3**: Mixed positive values
-4. **Test 4**: Negative inputs
-5. **Test 5**: Mixed positive and negative values
-6. **Test 6**: Large values (stress test)
-7. **Test 7**: Zero inputs (edge case)
-8. **Test 8**: Sparse kernel (some zeros)
-
-### Component Testbenches
-
-- **multiplier_tb_Version2.v** - Tests the 32-bit multiplier
-- **mac_tb_Version2.v** - Tests the MAC unit
-- **divider_tb_Version2.v** - Tests the general divider
-
-## Simulation Output
-
-After running simulations:
-- VCD waveform files are saved to `sim_output/waveforms/`
-- Console output shows test results (PASS/FAIL)
-- Use GTKWave to view waveforms:
-  ```bash
-  gtkwave sim_output/waveforms/cnn_accelerator_tb.vcd
-  ```
+This generates:
+- grayscale pixel CSV
+- patch CSV with expected outputs
+- Verilog include file for the generated windows
+- compiled simulation output in `sim_output/`
 
 ## Parameters
 
-The CNN accelerator is parameterized:
-
 ```verilog
-parameter WIDTH = 32        // Data width (bits)
-parameter ACC_WIDTH = 72    // Accumulator width (bits)
-parameter NUM_INPUTS = 9    // Number of input/kernel values
+parameter WIDTH = 32
+parameter ACC_WIDTH = 72
+parameter NUM_INPUTS = 9
 ```
 
-## Design Features
+## Performance Notes
 
-- **Pipeline Architecture**: Multi-stage datapath with controller FSM
-- **Optimized Division**: Divide-by-9 uses reciprocal multiplication instead of full division
-- **Signed Arithmetic**: Full support for signed input data and kernels
-- **Parameterizable**: Easy to adjust data widths and input count
-- **Comprehensive Testing**: Multiple test cases covering edge cases
+- Multiplier latency: 32 cycles
+- Divide-by-9 latency: 72 cycles
+- General divider latency: 32 cycles
+- Top-level accelerator latency: roughly 400 cycles per 3x3 patch with the current sequential datapath
+- DSP usage in the chosen arithmetic path: 0 DSP slices
 
-## Performance
+## Next Steps
 
-- **Latency**: ~50-100 clock cycles per computation (depends on multiplier/divider implementation)
-- **Throughput**: Sequential processing of 9 MAC operations
-- **Area**: Optimized for FPGA implementation with shift-add multiplier
-
-## Future Enhancements
-
-- [ ] Add controller testbench
-- [ ] Implement pipelined multiplier for higher throughput
-- [ ] Add ready/valid handshaking protocol
-- [ ] Support variable-length input arrays
-- [ ] Add synthesis constraints (SDC/XDC files)
-
-## License
-
-Educational/Research Project
-
-## Authors
-
-CNN Accelerator Design Team
+- Add Vivado synthesis reports for measured LUT/FF/DSP usage
+- Add a board-level top module for Nexys A7 switches, buttons, UART, or VGA
+- Add an output feature-map writer so image simulations can emit reconstructed output images
