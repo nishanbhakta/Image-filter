@@ -101,6 +101,7 @@ module cnn_accelerator_tb;
         $dumpvars(0, cnn_accelerator_tb);
     end
 
+    // Compute a percentage with two fractional digits without using real numbers.
     function integer compute_accuracy_hundredths;
         input integer passed;
         input integer total;
@@ -113,6 +114,7 @@ module cnn_accelerator_tb;
         end
     endfunction
 
+    // Build the software reference trace used in console diagnostics.
     task compute_reference_trace;
         output signed [ACC_WIDTH-1:0] accumulator_out;
         output signed [ACC_WIDTH-1:0] after_div9_out;
@@ -126,6 +128,7 @@ module cnn_accelerator_tb;
         end
     endtask
 
+    // Print the active patch, kernel, and expected arithmetic pipeline values.
     task print_current_vector;
         reg signed [ACC_WIDTH-1:0] computed_accumulator;
         reg signed [ACC_WIDTH-1:0] computed_after_div9;
@@ -165,6 +168,7 @@ module cnn_accelerator_tb;
         end
     endtask
 
+    // Emit the aggregate pass/fail summary at the end of simulation.
     task print_summary;
         begin
             accuracy_hundredths = compute_accuracy_hundredths(pass_count, total_tests);
@@ -270,6 +274,7 @@ module cnn_accelerator_tb;
     endtask
 `endif
 
+    // Launch one hardware transaction, wait for completion, and compare results.
     task run_test;
         reg signed [ACC_WIDTH-1:0] computed_accumulator;
         reg signed [ACC_WIDTH-1:0] computed_after_div9;
@@ -330,6 +335,7 @@ module cnn_accelerator_tb;
     endtask
 
 `ifdef USE_GENERATED_IMAGE_DATA
+    // Copy one generated image window into the DUT inputs.
     task load_generated_window;
         input integer window_index;
         integer patch_index;
@@ -345,6 +351,7 @@ module cnn_accelerator_tb;
         end
     endtask
 
+    // Iterate through every generated image window and capture hardware outputs.
     task run_generated_tests;
         integer window_index;
         begin
@@ -385,6 +392,7 @@ module cnn_accelerator_tb;
 `endif
 
 `ifdef USE_CSV_TEST_DATA
+    // Move one CSV dataset row into the DUT input arrays.
     task load_csv_vector_into_dut;
         integer patch_index;
         begin
@@ -397,6 +405,7 @@ module cnn_accelerator_tb;
         end
     endtask
 
+    // Walk the CSV dataset, validate the reference fields, and run each vector.
     task run_csv_tests;
         reg signed [ACC_WIDTH-1:0] computed_accumulator;
         reg signed [ACC_WIDTH-1:0] computed_after_div9;
@@ -494,6 +503,7 @@ module cnn_accelerator_tb;
     endtask
 `endif
 
+    // Main simulation flow: reset the DUT, choose the active data source, then run tests.
     initial begin
         $display("========================================");
         $display("CNN Accelerator Testbench Started");
@@ -640,6 +650,7 @@ module cnn_accelerator_tb;
         $finish;
     end
 
+    // Safety timeout so a stalled handshake does not hang the simulator forever.
     initial begin
 `ifdef USE_GENERATED_IMAGE_DATA
         simulation_timeout_cycles = (GENERATED_NUM_WINDOWS * 250) + 1000;
