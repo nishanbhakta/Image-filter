@@ -1,5 +1,18 @@
 /*
-  Nexys A7 board wrapper for the pipelined CNN accelerator.
+  Nexys A7 board wrapper for the CNN accelerator demo.
+
+`ifdef USE_GENERATED_RESULT_ROM
+  Generated-result playback mode:
+  - BTN U advances through the generated 16-bit results one by one
+  - BTN C resets playback to the first result
+  - LED[15] indicates the final generated result is selected
+  - LED[14] indicates UART transmission is active
+  - LED[13] shows the result sign, LED[12:0] show result bits
+  - The 8-digit seven-segment display shows the result index in the upper
+    four digits and the 16-bit result value in the lower four digits
+  - The displayed 16-bit value is streamed over USB-UART as 4 hex digits + CR/LF
+`else
+  Accelerator demo mode:
   - BTN U starts one inference on a built-in 3x3 patch/kernel
   - BTN C resets the design
   - SW[15:0] set the positive scale factor, with 0 treated as 1
@@ -8,7 +21,8 @@
   - LED[13] shows the result sign, LED[12:0] show result bits
   - The 8-digit seven-segment display shows the 32-bit result in hex
   - The result is also streamed over USB-UART as ASCII hex + CR/LF
- */
+`endif
+*/
 
 module nexys_a7_top (
     input CLK100MHZ,
@@ -33,18 +47,19 @@ module nexys_a7_top (
     localparam ACC_WIDTH = 72;
     localparam NUM_INPUTS = 9;
 
+`ifdef USE_GENERATED_RESULT_ROM
+`include "generated_board_results.vh"
+    localparam integer GENERATED_RESULT_INDEX_WIDTH =
+        (GENERATED_BOARD_RESULT_COUNT <= 1) ? 1 : $clog2(GENERATED_BOARD_RESULT_COUNT);
+`endif
+
     reg btnu_meta;
     reg btnu_sync;
     reg btnu_prev;
     reg [15:0] refresh_counter;
 
     wire rst = BTNC;
-    wire start_pulse = btnu_sync & ~btnu_prev;
-    wire signed [WIDTH-1:0] input_data [0:NUM_INPUTS-1];
-    wire signed [WIDTH-1:0] kernel [0:NUM_INPUTS-1];
-    wire signed [WIDTH-1:0] scale_factor;
-    wire signed [WIDTH-1:0] result;
-    wire done;
+    wire btnu_pulse = btnu_sync & ~btnu_prev;
     wire uart_busy;
     wire uart_done;
 
@@ -53,6 +68,50 @@ module nexys_a7_top (
     reg [3:0] hex_nibble;
 
     wire [2:0] active_digit = refresh_counter[15:13];
+
+`ifdef USE_GENERATED_RESULT_ROM
+    reg [GENERATED_RESULT_INDEX_WIDTH-1:0] playback_index;
+    reg [15:0] uart_result_value;
+    reg uart_start_reg;
+
+    wire playback_at_last =
+        (playback_index == (GENERATED_BOARD_RESULT_COUNT - 1));
+    wire [GENERATED_RESULT_INDEX_WIDTH-1:0] playback_index_next =
+        playback_at_last ? {GENERATED_RESULT_INDEX_WIDTH{1'b0}} : (playback_index + 1'b1);
+    wire [15:0] playback_index_display = playback_index;
+    wire signed [15:0] current_generated_result =
+        generated_board_results[playback_index];
+    wire [31:0] result_display = {
+        playback_index_display,
+        current_generated_result[15:0]
+    };
+
+    uart_result_streamer #(
+        .CLK_FREQ_HZ(100_000_000),
+        .BAUD_RATE(115_200),
+        .RESULT_WIDTH(16)
+    ) uart_streamer_inst (
+        .clk(CLK100MHZ),
+        .rst(rst),
+        .start(uart_start_reg),
+        .result(uart_result_value),
+        .tx(UART_RXD_OUT),
+        .busy(uart_busy),
+        .done(uart_done)
+    );
+`else
+    wire signed [WIDTH-1:0] input_data [0:NUM_INPUTS-1];
+    wire signed [WIDTH-1:0] kernel [0:NUM_INPUTS-1];
+    wire signed [WIDTH-1:0] scale_factor;
+    wire signed [WIDTH-1:0] result;
+    wire done;
+    wire [WIDTH-1:0] fifo_dout;
+    wire fifo_full;
+    wire fifo_empty;
+    wire fifo_wr_en;
+    reg fifo_rd_en;
+    reg uart_start_reg;
+    reg [WIDTH-1:0] uart_result_value;
     wire [31:0] result_display = result;
 
     assign scale_factor = (SW == 16'd0) ? 32'sd1 : $signed({16'd0, SW});
@@ -84,12 +143,28 @@ module nexys_a7_top (
     ) dut (
         .clk(CLK100MHZ),
         .rst(rst),
-        .start(start_pulse),
+        .start(btnu_pulse),
         .input_data(input_data),
         .kernel(kernel),
         .scale_factor(scale_factor),
         .result(result),
         .done(done)
+    );
+
+    assign fifo_wr_en = done;
+
+    sync_fifo #(
+        .WIDTH(WIDTH),
+        .DEPTH(16)
+    ) result_fifo_inst (
+        .clk(CLK100MHZ),
+        .rst(rst),
+        .wr_en(fifo_wr_en),
+        .rd_en(fifo_rd_en),
+        .din(result),
+        .dout(fifo_dout),
+        .full(fifo_full),
+        .empty(fifo_empty)
     );
 
     uart_result_streamer #(
@@ -98,12 +173,30 @@ module nexys_a7_top (
     ) uart_streamer_inst (
         .clk(CLK100MHZ),
         .rst(rst),
-        .start(done),
-        .result(result),
+        .start(uart_start_reg),
+        .result(uart_result_value),
         .tx(UART_RXD_OUT),
         .busy(uart_busy),
         .done(uart_done)
     );
+
+    always @(posedge CLK100MHZ) begin
+        if (rst) begin
+            fifo_rd_en <= 1'b0;
+            uart_start_reg <= 1'b0;
+            uart_result_value <= {WIDTH{1'b0}};
+        end else begin
+            fifo_rd_en <= 1'b0;
+            uart_start_reg <= 1'b0;
+
+            if (!uart_busy && !fifo_empty) begin
+                fifo_rd_en <= 1'b1;
+                uart_result_value <= fifo_dout;
+                uart_start_reg <= 1'b1;
+            end
+        end
+    end
+`endif
 
     always @(posedge CLK100MHZ) begin
         btnu_meta <= BTNU;
@@ -111,6 +204,24 @@ module nexys_a7_top (
         btnu_prev <= btnu_sync;
         refresh_counter <= refresh_counter + 1'b1;
     end
+
+`ifdef USE_GENERATED_RESULT_ROM
+    always @(posedge CLK100MHZ) begin
+        if (rst) begin
+            playback_index <= {GENERATED_RESULT_INDEX_WIDTH{1'b0}};
+            uart_result_value <= generated_board_results[0];
+            uart_start_reg <= 1'b0;
+        end else begin
+            uart_start_reg <= 1'b0;
+
+            if (btnu_pulse && !uart_busy) begin
+                playback_index <= playback_index_next;
+                uart_result_value <= generated_board_results[playback_index_next];
+                uart_start_reg <= 1'b1;
+            end
+        end
+    end
+`endif
 
     always @(*) begin
         case (active_digit)
@@ -146,10 +257,17 @@ module nexys_a7_top (
         endcase
     end
 
+`ifdef USE_GENERATED_RESULT_ROM
+    assign LED[15] = playback_at_last;
+    assign LED[14] = uart_busy;
+    assign LED[13] = current_generated_result[15];
+    assign LED[12:0] = current_generated_result[12:0];
+`else
     assign LED[15] = done;
     assign LED[14] = uart_busy;
     assign LED[13] = result[31];
     assign LED[12:0] = result[12:0];
+`endif
 
     assign AN = an_reg;
     assign {CA, CB, CC, CD, CE, CF, CG} = seg_reg;

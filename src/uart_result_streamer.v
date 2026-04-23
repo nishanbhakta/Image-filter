@@ -1,16 +1,20 @@
 /*
-  Streams the 32-bit CNN result as ASCII hex over UART:
-  XXXXXXXX\r\n
+  Streams the CNN result as ASCII hex over UART:
+  <HEX_DIGITS>\r\n
+
+  RESULT_WIDTH defaults to 32 for the existing accelerator flow, but the
+  module can also stream 16-bit generated-image results for board playback.
 */
 
 module uart_result_streamer #(
     parameter integer CLK_FREQ_HZ = 100_000_000,
-    parameter integer BAUD_RATE = 115_200
+    parameter integer BAUD_RATE = 115_200,
+    parameter integer RESULT_WIDTH = 32
 ) (
     input clk,
     input rst,
     input start,
-    input [31:0] result,
+    input [RESULT_WIDTH-1:0] result,
     output tx,
     output busy,
     output reg done
@@ -19,11 +23,14 @@ module uart_result_streamer #(
     localparam [1:0] IDLE = 2'd0;
     localparam [1:0] REQUEST = 2'd1;
     localparam [1:0] WAIT_BYTE = 2'd2;
-    localparam [3:0] LAST_BYTE_INDEX = 4'd9;
+    localparam integer HEX_DIGITS = (RESULT_WIDTH + 3) / 4;
+    localparam integer FRAME_BYTES = HEX_DIGITS + 2;
+    localparam integer BYTE_INDEX_WIDTH = (FRAME_BYTES <= 1) ? 1 : $clog2(FRAME_BYTES);
+    localparam integer LAST_BYTE_INDEX = FRAME_BYTES - 1;
 
     reg [1:0] state;
-    reg [3:0] byte_index;
-    reg [31:0] result_latched;
+    reg [BYTE_INDEX_WIDTH-1:0] byte_index;
+    reg [RESULT_WIDTH-1:0] result_latched;
     reg uart_start;
     wire uart_busy;
     wire uart_done;
@@ -53,22 +60,19 @@ module uart_result_streamer #(
         end
     endfunction
 
-    function [7:0] result_byte;
-        input [31:0] value;
-        input [3:0] index;
+    function automatic [7:0] result_byte;
+        input [RESULT_WIDTH-1:0] value;
+        input integer index;
+        reg [RESULT_WIDTH-1:0] shifted_value;
         begin
-            case (index)
-                4'd0: result_byte = hex_to_ascii(value[31:28]);
-                4'd1: result_byte = hex_to_ascii(value[27:24]);
-                4'd2: result_byte = hex_to_ascii(value[23:20]);
-                4'd3: result_byte = hex_to_ascii(value[19:16]);
-                4'd4: result_byte = hex_to_ascii(value[15:12]);
-                4'd5: result_byte = hex_to_ascii(value[11:8]);
-                4'd6: result_byte = hex_to_ascii(value[7:4]);
-                4'd7: result_byte = hex_to_ascii(value[3:0]);
-                4'd8: result_byte = 8'h0D;
-                default: result_byte = 8'h0A;
-            endcase
+            if (index < HEX_DIGITS) begin
+                shifted_value = value >> (4 * (HEX_DIGITS - 1 - index));
+                result_byte = hex_to_ascii(shifted_value[3:0]);
+            end else if (index == HEX_DIGITS) begin
+                result_byte = 8'h0D;
+            end else begin
+                result_byte = 8'h0A;
+            end
         end
     endfunction
 
@@ -91,8 +95,8 @@ module uart_result_streamer #(
     always @(posedge clk) begin
         if (rst) begin
             state <= IDLE;
-            byte_index <= 4'd0;
-            result_latched <= 32'd0;
+            byte_index <= {BYTE_INDEX_WIDTH{1'b0}};
+            result_latched <= {RESULT_WIDTH{1'b0}};
             uart_start <= 1'b0;
             done <= 1'b0;
         end else begin
@@ -103,7 +107,7 @@ module uart_result_streamer #(
                 IDLE: begin
                     if (start) begin
                         result_latched <= result;
-                        byte_index <= 4'd0;
+                        byte_index <= {BYTE_INDEX_WIDTH{1'b0}};
                         state <= REQUEST;
                     end
                 end
@@ -117,7 +121,7 @@ module uart_result_streamer #(
 
                 WAIT_BYTE: begin
                     if (uart_done) begin
-                        if (byte_index == LAST_BYTE_INDEX) begin
+                        if (byte_index == LAST_BYTE_INDEX[BYTE_INDEX_WIDTH-1:0]) begin
                             done <= 1'b1;
                             state <= IDLE;
                         end else begin

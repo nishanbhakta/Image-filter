@@ -144,6 +144,9 @@ def main() -> int:
     output_csv = output_dir / "output.csv"
     output_trace_csv = output_dir / "output_trace.csv"
     comparison_csv = output_dir / "output_comparison.csv"
+    output_int16_stream_csv = output_dir / "output_int16_stream.csv"
+    output_int16_mem = output_dir / "output_int16.mem"
+    board_results_include = output_dir / "generated_board_results.vh"
 
     try:
         preprocess_result = preprocess_image.process_image(
@@ -237,6 +240,12 @@ def main() -> int:
             actual_csv=output_csv,
             comparison_csv=comparison_csv,
         )
+        board_export = preprocess_image.export_feature_map_as_int16_sequence(
+            feature_map_csv=output_csv,
+            stream_csv=output_int16_stream_csv,
+            mem_path=output_int16_mem,
+            verilog_include=board_results_include,
+        )
     except (FileNotFoundError, ValueError) as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -248,6 +257,9 @@ def main() -> int:
     print(f"Hardware output CSV: {output_csv}", flush=True)
     print(f"Output trace CSV: {output_trace_csv}", flush=True)
     print(f"Comparison CSV: {comparison_csv}", flush=True)
+    print(f"16-bit output stream CSV: {output_int16_stream_csv}", flush=True)
+    print(f"16-bit output MEM: {output_int16_mem}", flush=True)
+    print(f"Board results include: {board_results_include}", flush=True)
     print(f"Generated include: {preprocess_result['verilog_include']}", flush=True)
     print(f"Patch CSV: {preprocess_result['patches_csv']}", flush=True)
     print(f"Compiled simulation: {sim_output}", flush=True)
@@ -261,6 +273,12 @@ def main() -> int:
         "Cross-check summary: "
         f"{comparison_summary['matching_cells']}/{comparison_summary['total_cells']} cells match, "
         f"{comparison_summary['mismatched_cells']} mismatches",
+        flush=True,
+    )
+    print(
+        "Board playback range: "
+        f"{board_export['min_value']}..{board_export['max_value']} "
+        f"across {board_export['count']} signed 16-bit results",
         flush=True,
     )
     print(f"Windows simulated: {preprocess_result['verilog_windows']}", flush=True)

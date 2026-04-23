@@ -1,8 +1,8 @@
 /*
-  Divide-by-9 Module - Sequential Constant Divider
-  - Exact signed division without using the / operator
-  - Takes WIDTH cycles to complete
-  - Implemented as a restoring divider specialized for divisor 9
+    Signed divide-by-9 using reciprocal multiply with bounded correction.
+    - Captures dividend on start.
+    - Computes quotient from reciprocal estimate and exacts it with small corrections.
+    - done pulses high one cycle after start.
  */
 
 module divide_by_9 #(
@@ -16,61 +16,119 @@ module divide_by_9 #(
     output reg done
 );
 
-    localparam IDLE = 1'b0;
-    localparam DIVIDE = 1'b1;
-    localparam COUNTER_WIDTH = $clog2(WIDTH + 1);
-    localparam [COUNTER_WIDTH-1:0] ITERATIONS = WIDTH;
-    localparam [WIDTH:0] DIVISOR = {{WIDTH-4{1'b0}}, 5'd9};
+    localparam integer RECIP_SHIFT = WIDTH + 4;
+    localparam [RECIP_SHIFT:0] RECIP_ONE = {1'b1, {RECIP_SHIFT{1'b0}}};
+    localparam [RECIP_SHIFT:0] RECIP_CONST = (RECIP_ONE + 8) / 9;
 
-    reg state;
-    reg result_sign;
-    reg [WIDTH-1:0] quotient_reg;
-    reg [WIDTH:0] remainder_reg;
-    reg [COUNTER_WIDTH-1:0] counter;
+    reg valid_s1;
+    reg valid_s2;
+    reg valid_s3;
+    reg valid_s4;
 
-    wire [WIDTH-1:0] dividend_abs = dividend[WIDTH-1] ? (~dividend + 1'b1) : dividend;
-    wire [WIDTH:0] shifted_remainder = {remainder_reg[WIDTH-1:0], quotient_reg[WIDTH-1]};
-    wire subtract_ok = shifted_remainder >= DIVISOR;
-    wire [WIDTH:0] remainder_next = subtract_ok ? (shifted_remainder - DIVISOR) : shifted_remainder;
-    wire [WIDTH-1:0] quotient_next = {quotient_reg[WIDTH-2:0], subtract_ok};
+    reg sign_s1;
+    reg sign_s2;
+    reg sign_s3;
+    reg [WIDTH-1:0] abs_dividend_s1;
+    reg [WIDTH-1:0] abs_dividend_s2;
+    reg [WIDTH+RECIP_SHIFT:0] recip_product_s2;
+    reg [WIDTH-1:0] quotient_abs_s3;
+    reg [WIDTH+2:0] remainder_s3;
+    reg signed [WIDTH-1:0] quotient_s4;
+
+    reg [WIDTH-1:0] quotient_abs_est;
+    reg [WIDTH-1:0] quotient_abs_corr;
+    reg [WIDTH+2:0] remainder_calc;
+    reg [WIDTH+2:0] prod_q9;
+    reg [WIDTH+2:0] abs_ext;
+
+    function [WIDTH-1:0] abs_unsigned;
+        input signed [WIDTH-1:0] value;
+        begin
+            if (value[WIDTH-1]) begin
+                abs_unsigned = ~value + 1'b1;
+            end else begin
+                abs_unsigned = value;
+            end
+        end
+    endfunction
 
     always @(posedge clk) begin
         if (rst) begin
-            state <= IDLE;
             done <= 1'b0;
             quotient <= {WIDTH{1'b0}};
-            result_sign <= 1'b0;
-            quotient_reg <= {WIDTH{1'b0}};
-            remainder_reg <= {(WIDTH+1){1'b0}};
-            counter <= {COUNTER_WIDTH{1'b0}};
+            valid_s1 <= 1'b0;
+            valid_s2 <= 1'b0;
+            valid_s3 <= 1'b0;
+            valid_s4 <= 1'b0;
+            sign_s1 <= 1'b0;
+            sign_s2 <= 1'b0;
+            sign_s3 <= 1'b0;
+            abs_dividend_s1 <= {WIDTH{1'b0}};
+            abs_dividend_s2 <= {WIDTH{1'b0}};
+            recip_product_s2 <= {(WIDTH + RECIP_SHIFT + 1){1'b0}};
+            quotient_abs_s3 <= {WIDTH{1'b0}};
+            remainder_s3 <= {(WIDTH + 3){1'b0}};
+            quotient_s4 <= {WIDTH{1'b0}};
         end else begin
-            done <= 1'b0;
+            done <= valid_s4;
 
-            case (state)
-                IDLE: begin
-                    if (start) begin
-                        result_sign <= dividend[WIDTH-1];
-                        quotient_reg <= dividend_abs;
-                        remainder_reg <= {(WIDTH+1){1'b0}};
-                        counter <= ITERATIONS;
-                        state <= DIVIDE;
-                    end
+            if (valid_s4) begin
+                quotient <= quotient_s4;
+            end
+
+            if (start) begin
+                sign_s1 <= dividend[WIDTH-1];
+                abs_dividend_s1 <= abs_unsigned(dividend);
+            end
+
+            if (valid_s1) begin
+                sign_s2 <= sign_s1;
+                abs_dividend_s2 <= abs_dividend_s1;
+                recip_product_s2 <= abs_dividend_s1 * RECIP_CONST;
+            end
+
+            if (valid_s2) begin
+                quotient_abs_est = (recip_product_s2 >> RECIP_SHIFT);
+                quotient_abs_corr = quotient_abs_est;
+                abs_ext = {{3{1'b0}}, abs_dividend_s2};
+
+                prod_q9 = ({{3{1'b0}}, quotient_abs_corr} << 3) + {{3{1'b0}}, quotient_abs_corr};
+                if (prod_q9 > abs_ext) begin
+                    quotient_abs_corr = quotient_abs_corr - 1'b1;
+                    prod_q9 = ({{3{1'b0}}, quotient_abs_corr} << 3) + {{3{1'b0}}, quotient_abs_corr};
                 end
 
-                DIVIDE: begin
-                    quotient_reg <= quotient_next;
-                    remainder_reg <= remainder_next;
-                    counter <= counter - 1'b1;
+                remainder_calc = abs_ext - prod_q9;
 
-                    if (counter == {{(COUNTER_WIDTH-1){1'b0}}, 1'b1}) begin
-                        quotient <= result_sign
-                            ? -$signed(quotient_next)
-                            : $signed(quotient_next);
-                        done <= 1'b1;
-                        state <= IDLE;
-                    end
+                quotient_abs_s3 <= quotient_abs_corr;
+                remainder_s3 <= remainder_calc;
+                sign_s3 <= sign_s2;
+            end
+
+            if (valid_s3) begin
+                quotient_abs_corr = quotient_abs_s3;
+                remainder_calc = remainder_s3;
+
+                if (remainder_calc >= 9) begin
+                    quotient_abs_corr = quotient_abs_corr + 1'b1;
+                    remainder_calc = remainder_calc - 9;
                 end
-            endcase
+                if (remainder_calc >= 9) begin
+                    quotient_abs_corr = quotient_abs_corr + 1'b1;
+                end
+
+                if (sign_s3) begin
+                    quotient_s4 <= -$signed(quotient_abs_corr);
+                end else begin
+                    quotient_s4 <= $signed(quotient_abs_corr);
+                end
+            end
+
+            valid_s1 <= start;
+            valid_s2 <= valid_s1;
+            valid_s3 <= valid_s2;
+            valid_s4 <= valid_s3;
+
         end
     end
 

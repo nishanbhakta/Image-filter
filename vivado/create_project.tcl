@@ -31,6 +31,7 @@ set script_dir [file normalize [file dirname [info script]]]
 set repo_root [file normalize [file join $script_dir ".."]]
 set project_dir [file normalize [file join $repo_root "vivado_build" $project_name]]
 set project_file [file join $project_dir "${project_name}.xpr"]
+set generated_board_include [file join $repo_root "generated_data" "generated_board_results.vh"]
 
 if {[file exists $project_file]} {
     open_project $project_file
@@ -51,6 +52,7 @@ set source_files [list \
     [file join $repo_root "src" "divider_Version2.v"] \
     [file join $repo_root "src" "controller_Version2.v"] \
     [file join $repo_root "src" "cnn_accelerator_Version2.v"] \
+    [file join $repo_root "src" "sync_fifo.v"] \
     [file join $repo_root "src" "uart_tx.v"] \
     [file join $repo_root "src" "uart_result_streamer.v"] \
     [file join $repo_root "board" "nexys_a7_top.v"] \
@@ -88,6 +90,13 @@ foreach file $source_files {
 
 foreach file $sim_files {
     set_property file_type SystemVerilog [get_files $file]
+}
+
+if {[file exists $generated_board_include]} {
+    set_property include_dirs [list [file dirname $generated_board_include]] [get_filesets sources_1]
+    set_property verilog_define [list USE_GENERATED_RESULT_ROM] [get_filesets sources_1]
+    puts "Enabled generated-result board playback:"
+    puts "  Include: $generated_board_include"
 }
 
 set_property top nexys_a7_top [get_filesets sources_1]

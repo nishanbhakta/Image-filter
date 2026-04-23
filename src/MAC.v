@@ -19,61 +19,30 @@ module mac #(
     output reg done
 );
 
-    localparam IDLE = 1'b0;
-    localparam WAIT_PRODUCT = 1'b1;
-
-    reg state;
-    reg mult_start;
-    reg enable_latched;
-    reg signed [WIDTH-1:0] x_reg;
-    reg signed [WIDTH-1:0] h_reg;
-    wire signed [2*WIDTH-1:0] product;
-    wire mult_done;
-
-    multiplier #(.WIDTH(WIDTH)) mult_inst (
-        .clk(clk),
-        .rst(rst),
-        .start(mult_start),
-        .a(x_reg),
-        .b(h_reg),
-        .product(product),
-        .done(mult_done)
-    );
+    reg signed [2*WIDTH-1:0] product_pipe;
+    reg valid_pipe;
+    reg enable_pipe;
 
     always @(posedge clk) begin
         if (rst || reset_acc) begin
-            state <= IDLE;
-            mult_start <= 1'b0;
-            enable_latched <= 1'b0;
-            x_reg <= {WIDTH{1'b0}};
-            h_reg <= {WIDTH{1'b0}};
             result <= {ACC_WIDTH{1'b0}};
             done <= 1'b0;
+            product_pipe <= {2*WIDTH{1'b0}};
+            valid_pipe <= 1'b0;
+            enable_pipe <= 1'b0;
         end else begin
-            mult_start <= 1'b0;
-            done <= 1'b0;
+            done <= valid_pipe;
 
-            case (state)
-                IDLE: begin
-                    if (start) begin
-                        x_reg <= x;
-                        h_reg <= h;
-                        enable_latched <= enable;
-                        mult_start <= 1'b1;
-                        state <= WAIT_PRODUCT;
-                    end
-                end
+            if (valid_pipe && enable_pipe) begin
+                result <= result + {{(ACC_WIDTH-2*WIDTH){product_pipe[2*WIDTH-1]}}, product_pipe};
+            end
 
-                WAIT_PRODUCT: begin
-                    if (mult_done) begin
-                        if (enable_latched) begin
-                            result <= result + {{(ACC_WIDTH-2*WIDTH){product[2*WIDTH-1]}}, product};
-                        end
-                        done <= 1'b1;
-                        state <= IDLE;
-                    end
-                end
-            endcase
+            if (start) begin
+                product_pipe <= x * h;
+            end
+
+            valid_pipe <= start;
+            enable_pipe <= enable;
         end
     end
 

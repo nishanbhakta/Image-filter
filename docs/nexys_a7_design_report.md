@@ -1,215 +1,171 @@
-# Nexys A7 CNN Block Design Report
+# Nexys A7 Arithmetic Design Report
 
-This note aligns the project with the assignment brief for FPGA-friendly implementations of a 32x32 multiplier, divide-by-9 block, MAC, and 32-bit divider on a Nexys A7-class target.
-
-## Nexys A7 Resource Snapshot
-
-From the Digilent Nexys A7 reference manual:
-
-| Variant | FPGA | LUTs | Flip-Flops | Block RAM | DSP Slices | CMTs |
-|---|---|---:|---:|---:|---:|---:|
-| Nexys A7-100T | XC7A100T-1CSG324C | 63,400 | 126,800 | 1,188 Kb | 240 | 6 |
-| Nexys A7-50T | XC7A50T-1CSG324I | 32,600 | 65,200 | 600 Kb | 120 | 5 |
-
-Useful board-level resources for this project:
-- 100 MHz on-board oscillator
-- 128 MiB DDR2 SDRAM
-- USB-JTAG / USB-UART programming path
-- GPIO peripherals including LEDs, switches, pushbuttons, seven-segment display, Pmods, VGA, Ethernet, and microSD
-
-Official reference:
-- Digilent Nexys A7 Reference Manual: https://digilent.com/reference/_media/reference/programmable-logic/nexys-a7/nexys-a7_rm.pdf
-
-## Chosen Implementations
-
-### 1. 32x32 Multiplier
-
-**Option A: DSP48-based multiplier**
-- Best throughput and lowest latency because the synthesis tool maps `a * b` directly into DSP slices.
-- Very attractive when DSP slices are plentiful and high throughput matters more than portability.
-- The tradeoff is explicit DSP consumption, which is unnecessary for a small teaching-oriented design.
-
-**Option B: combinational array / Wallace-tree multiplier**
-- Produces a result in one cycle without DSP usage, but the logic depth is large and timing becomes harder.
-- LUT cost is much higher than a sequential design, especially on a modest student project.
-- This is usually the wrong default if area and implementation simplicity matter.
-
-**Option C: sequential shift-add multiplier**
-- Reuses one adder and a few shift registers over 32 cycles.
-- Uses no DSP blocks, is easy to verify, and maps cleanly onto LUTs and FFs.
-- Throughput is lower, but the area is predictable and fits the lab-style accelerator well.
-
-**Recommended choice:** Option C, sequential shift-add.
-
-Reason:
-- It directly satisfies the "shift-add multiplier" requirement.
-- It conserves DSP slices for later project extensions.
-- It is small, deterministic, and easy to explain in a report and viva.
-
-Implemented RTL:
-- [multiplier.v](../src/multiplier.v)
-
-Estimated implementation cost on Nexys A7:
-
-| Metric | Estimate |
-|---|---:|
-| LUTs | 150-220 |
-| FFs | 160-220 |
-| DSPs | 0 |
-| BRAM | 0 |
-| Latency | 32 cycles |
-| Initiation interval | 33 cycles |
-
-### 2. Divide-by-9 Block
-
-**Option A: reciprocal multiply**
-- Multiply by a fixed-point approximation of `1/9` and shift down.
-- Very fast and common in image-processing datapaths.
-- Needs careful correction logic if exact signed truncation toward zero is required.
-
-**Option B: constant restoring divider**
-- Use long division with the divisor fixed at 9.
-- Exact for positive and negative signed inputs and requires only compare/subtract/shift hardware.
-- Slower than reciprocal multiply, but very easy to reason about and verify.
-
-**Option C: LUT / piecewise approximation**
-- Useful only for small input widths or approximate arithmetic.
-- Not practical for a 72-bit signed datapath.
-- It complicates correctness and does not scale cleanly.
-
-**Recommended choice:** Option B, constant restoring divider.
-
-Reason:
-- Exact signed behavior is more important here than one-cycle speed.
-- The datapath remains DSP-free and very transparent for a lab submission.
-- The interface matches the general divider style used elsewhere in the project.
-
-Implemented RTL:
-- [divide_by_9_Version2.v](../src/divide_by_9_Version2.v)
-
-Estimated implementation cost on Nexys A7:
-
-| Metric | Estimate |
-|---|---:|
-| LUTs | 100-160 |
-| FFs | 150-200 |
-| DSPs | 0 |
-| BRAM | 0 |
-| Latency | 72 cycles |
-| Initiation interval | 73 cycles |
-
-### 3. MAC With 32-bit Inputs And 72-bit Accumulator
-
-**Option A: DSP48 MAC**
-- Maps multiply and accumulate into dedicated DSP resources.
-- Gives the best throughput, often one result per cycle in a pipelined design.
-- It is the right choice for performance-first CNN accelerators, but it consumes DSP budget quickly.
-
-**Option B: shift-add multiplier plus accumulator**
-- Uses the chosen sequential multiplier and accumulates the signed product into a 72-bit register.
-- No DSP usage, easy control, and architectural consistency with the chosen multiplier.
-- Latency is tied to the multiplier, but area remains modest.
-
-**Option C: product-only accumulator helper**
-- Accept a precomputed product and only perform the accumulation.
-- Good as an internal helper in a staged pipeline.
-- By itself it does not satisfy the assignment's "32-bit inputs MAC" requirement.
-
-**Recommended choice:** Option B, shift-add multiplier plus accumulator.
-
-Reason:
-- It matches the requested 32-bit input MAC abstraction.
-- It reuses the chosen multiplier architecture cleanly.
-- It keeps the arithmetic path uniform and DSP-free.
-
-Implemented RTL:
-- Standalone MAC: [MAC.v](../src/MAC.v)
-- Internal pipeline helper: [MAC.v](../src/MAC.v)
-
-Estimated implementation cost on Nexys A7:
-
-| Metric | Estimate |
-|---|---:|
-| LUTs | 230-320 |
-| FFs | 250-340 |
-| DSPs | 0 |
-| BRAM | 0 |
-| Latency | 33 cycles |
-| Initiation interval | 34 cycles |
-
-### 4. 32-bit Signed Divider
-
-**Option A: restoring divider**
-- Classical shift-subtract long division.
-- Exact, compact, and straightforward to verify.
-- Throughput is low, but it is an excellent baseline architecture.
-
-**Option B: non-restoring divider**
-- Saves some correction steps relative to the restoring approach.
-- Can be a bit more efficient, but the control is harder to explain.
-- Good if you want a slightly more advanced iterative divider.
-
-**Option C: reciprocal/Newton-Raphson**
-- Very fast for floating-point style or heavily pipelined systems.
-- Overkill for a simple integer divider in a teaching project.
-- Typically chosen only when throughput dominates every other concern.
-
-**Recommended choice:** Option A, restoring divider.
-
-Reason:
-- It is exact, compact, and already a strong fit for the project's sequential style.
-- It uses only simple arithmetic primitives.
-- It is easier to defend in a project review than more aggressive iterative methods.
-
-Implemented RTL:
-- [divider_Version2.v](../src/divider_Version2.v)
-
-Estimated implementation cost on Nexys A7:
-
-| Metric | Estimate |
-|---|---:|
-| LUTs | 120-180 |
-| FFs | 140-220 |
-| DSPs | 0 |
-| BRAM | 0 |
-| Latency | 32 cycles |
-| Initiation interval | 33 cycles |
-
-## Accelerator-Level Notes
-
-The top-level accelerator now reuses:
-- a bank of parallel sequential shift-add multipliers
-- a 3-stage reduction pipeline for the 3x3 dot product
-- the exact divide-by-9 block
-- the signed restoring divider
-- a board-level UART result streamer for Nexys A7 bring-up
-
-Implemented top-level:
-- [cnn_accelerator_Version2.v](../src/cnn_accelerator_Version2.v)
-
-Expected top-level behavior:
-- One 3x3 patch processed at a time
-- Signed kernel and pixel support
-- Rough end-to-end latency around 140 cycles per patch with the parallel 3-stage control schedule
-- USB-UART can stream the final 32-bit result as ASCII hex for board-level debug
-- Very low DSP demand, making the design easy to fit on either Nexys A7 variant
-
-## Verification Status
-
-The project includes passing standalone and integration simulations for:
-- multiplier
-- MAC
-- divide-by-9
+This document maps the project to the assignment requirements for four required arithmetic blocks:
+- 32x32 multiplier
+- divide-by-9 unit
+- 32-bit MAC with 72-bit accumulator
 - 32-bit divider
-- top-level CNN accelerator
-- generated-image preprocessing plus simulation flow
 
-## Notes On Estimates
+## Final Architecture Choices
 
-The LUT/FF/DSP/BRAM values in this document are engineering estimates intended for assignment planning and architecture comparison. Final numbers depend on:
-- Vivado version
-- synthesis options
-- target variant, speed grade, and constraints
-- whether hierarchy is preserved or flattened
+| Block | Final Choice | RTL File |
+|---|---|---|
+| 32x32 Multiplier | DSP-based multiplier | `src/multiplier.v` |
+| Divide by 9 (32-bit) | Reciprocal multiply + correction | `src/divide_by_9_Version2.v` |
+| MAC (32x32 -> 72-bit ACC) | DSP-based pipelined MAC | `src/MAC.v` |
+| 32-bit Divider | Non-restoring divider | `src/divider_Version2.v` |
 
-For a final submission, the next improvement would be to run Vivado synthesis on the chosen top modules and replace these estimates with measured post-synthesis utilization and timing.
+## Architecture Options and Tradeoffs
+
+### 1) 32x32 Multiplier
+
+Option A: DSP48-based multiplier
+- Fastest and smallest LUT usage for this target.
+- Natural FPGA mapping with predictable timing.
+
+Option B: Combinational array / Wallace-tree
+- Very high throughput, but larger logic depth and LUT cost.
+
+Option C: Sequential shift-add
+- Small area without DSPs, but high latency and low throughput.
+
+Recommended: Option A (DSP-based).
+
+### 2) Divide-by-9
+
+Option A: Reciprocal multiply
+- Uses constant reciprocal and correction logic.
+- Excellent throughput with fixed divisor.
+
+Option B: Repeated subtraction / restoring constant divider
+- Exact but slower for wide datapaths.
+
+Option C: Generic divider
+- Flexible but overkill for constant 9.
+
+Recommended: Option A (reciprocal multiply).
+
+### 3) MAC
+
+Option A: DSP MAC
+- Highest throughput and best performance fit for FPGA.
+
+Option B: Shift-add multiplier + accumulator
+- Lower performance, no DSP dependency.
+
+Option C: Product input + accumulator only
+- Useful helper block but not a complete A/B MAC by itself.
+
+Recommended: Option A (DSP MAC).
+
+### 4) 32-bit Divider
+
+Option A: Restoring divider
+- Simple baseline, exact, deterministic.
+
+Option B: Non-restoring divider
+- Similar area, cleaner average datapath activity, deterministic latency.
+
+Option C: Reciprocal/Newton style
+- Best for high-throughput math pipelines, overkill for this requirement.
+
+Recommended: Option B (non-restoring divider).
+
+## Synthesizable RTL Status
+
+Implemented and verified in simulation:
+- `src/multiplier.v`
+- `src/divide_by_9_Version2.v`
+- `src/MAC.v`
+- `src/divider_Version2.v`
+
+Top-level integration using these blocks is in:
+- `src/cnn_accelerator_Version2.v`
+- `src/controller_Version2.v`
+
+## Performance Estimates (Vivado 2025.2, xc7a100tcsg324-1, 10 ns clock)
+
+### 32x32 DSP Multiplier
+
+Reports:
+- `vivado_build/arithmetic_reports/multiplier_util.rpt`
+- `vivado_build/arithmetic_reports/multiplier_timing.rpt`
+
+| Metric | Value |
+|---|---:|
+| LUTs | 47 |
+| FFs | 100 |
+| DSPs | 4 |
+| BRAM | 0 |
+| Latency | 1 cycle |
+| Initiation Interval | 1 cycle |
+| WNS @ 100 MHz | +6.437 ns |
+| Approx Fmax | 280.7 MHz |
+
+### Divide-by-9 Reciprocal (32-bit Required Block)
+
+Reports:
+- `vivado_build/arithmetic_reports/divide_by_9_u32_util.rpt`
+- `vivado_build/arithmetic_reports/divide_by_9_u32_timing.rpt`
+
+| Metric | Value |
+|---|---:|
+| LUTs | 336 |
+| FFs | 219 |
+| DSPs | 4 |
+| BRAM | 0 |
+| Latency | 4 cycles |
+| Initiation Interval | 1 cycle |
+| WNS @ 100 MHz | +0.794 ns |
+| Approx Fmax | 108.6 MHz |
+
+Note:
+The same module is also instantiated at `WIDTH=72` in the CNN top-level for precision retention, which is a tougher timing target than the required 32-bit block.
+
+### DSP MAC (32-bit inputs, 72-bit accumulator)
+
+Reports:
+- `vivado_build/arithmetic_reports/mac_util.rpt`
+- `vivado_build/arithmetic_reports/mac_timing.rpt`
+
+| Metric | Value |
+|---|---:|
+| LUTs | 121 |
+| FFs | 109 |
+| DSPs | 4 |
+| BRAM | 0 |
+| Latency | 1 cycle |
+| Initiation Interval | 1 cycle |
+| WNS @ 100 MHz | +4.762 ns |
+| Approx Fmax | 190.9 MHz |
+
+### 32-bit Non-Restoring Divider
+
+Reports:
+- `vivado_build/arithmetic_reports/divider_util.rpt`
+- `vivado_build/arithmetic_reports/divider_timing.rpt`
+
+| Metric | Value |
+|---|---:|
+| LUTs | 279 |
+| FFs | 202 |
+| DSPs | 0 |
+| BRAM | 0 |
+| Latency | 32 cycles |
+| Initiation Interval | 33 cycles |
+| WNS @ 100 MHz | +2.369 ns |
+| Approx Fmax | 131.0 MHz |
+
+## Verification
+
+Passing simulations:
+- multiplier testbench
+- MAC testbench
+- divide-by-9 testbench
+- divider testbench
+- CNN top-level directed testbench
+- CNN CSV-driven regression
+
+## Notes on Board-Level Metrics
+
+These are synthesis/OOC metrics for arithmetic cores and are suitable for architecture comparison. Final routed board-level values will vary with top-level I/O, placement, and implementation settings.

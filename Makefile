@@ -17,6 +17,7 @@ SRCS = $(SRC_DIR)/multiplier.v \
        $(SRC_DIR)/divide_by_9_Version2.v \
        $(SRC_DIR)/controller_Version2.v \
        $(SRC_DIR)/cnn_accelerator_Version2.v \
+	$(SRC_DIR)/sync_fifo.v \
        $(SRC_DIR)/uart_tx.v \
        $(SRC_DIR)/uart_result_streamer.v
 
