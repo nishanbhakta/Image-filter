@@ -28,7 +28,7 @@ module divide_by_9_tb ();
         $dumpvars(0, divide_by_9_tb);
     end
 
-    // Launch one divide-by-9 operation and print the pipelined result.
+    // Launch one divide-by-9 request and print the returned pipelined result.
     task run_divide_by_9;
         input signed [71:0] dividend_value;
         input signed [71:0] expected_quotient;
@@ -54,7 +54,7 @@ module divide_by_9_tb ();
         start = 0;
         dividend = 0;
 
-        // Release reset, then exercise positive, negative, and zero inputs.
+        // Release reset, then exercise positive, negative, and zero dividends.
         @(negedge clk);
         rst = 0;
 
