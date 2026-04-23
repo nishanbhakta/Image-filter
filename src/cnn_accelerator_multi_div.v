@@ -59,7 +59,7 @@ module cnn_accelerator_multi_div #(
     reg signed [ACC_WIDTH-1:0] div_dividend [0:NUM_DIVIDERS-1];
     reg signed [WIDTH-1:0] div_scale_factor [0:NUM_DIVIDERS-1];
     
-    // Result selection after any divider finishes.
+    // Result selection logic after any divider lane finishes.
     integer div_idx;
     wire any_div_done = |div_done_bus;
     reg signed [WIDTH-1:0] result_reg;
