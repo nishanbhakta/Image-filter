@@ -28,6 +28,7 @@ module uart_result_streamer #(
     localparam integer BYTE_INDEX_WIDTH = (FRAME_BYTES <= 1) ? 1 : $clog2(FRAME_BYTES);
     localparam integer LAST_BYTE_INDEX = FRAME_BYTES - 1;
 
+    // FSM state plus the latched result currently being serialized.
     reg [1:0] state;
     reg [BYTE_INDEX_WIDTH-1:0] byte_index;
     reg [RESULT_WIDTH-1:0] result_latched;
@@ -65,6 +66,7 @@ module uart_result_streamer #(
         input integer index;
         reg [RESULT_WIDTH-1:0] shifted_value;
         begin
+            // Emit MSB-first hex digits, then CR/LF terminators.
             if (index < HEX_DIGITS) begin
                 shifted_value = value >> (4 * (HEX_DIGITS - 1 - index));
                 result_byte = hex_to_ascii(shifted_value[3:0]);
@@ -106,6 +108,7 @@ module uart_result_streamer #(
             case (state)
                 IDLE: begin
                     if (start) begin
+                        // Snapshot the result so transmission is unaffected by later changes.
                         result_latched <= result;
                         byte_index <= {BYTE_INDEX_WIDTH{1'b0}};
                         state <= REQUEST;
@@ -114,6 +117,7 @@ module uart_result_streamer #(
 
                 REQUEST: begin
                     if (!uart_busy) begin
+                        // Request exactly one UART byte transfer.
                         uart_start <= 1'b1;
                         state <= WAIT_BYTE;
                     end
@@ -121,6 +125,7 @@ module uart_result_streamer #(
 
                 WAIT_BYTE: begin
                     if (uart_done) begin
+                        // Step through the ASCII frame until the last byte completes.
                         if (byte_index == LAST_BYTE_INDEX[BYTE_INDEX_WIDTH-1:0]) begin
                             done <= 1'b1;
                             state <= IDLE;
