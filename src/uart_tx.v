@@ -1,6 +1,6 @@
 /*
-  Simple UART transmitter.
-  Sends 1 start bit, 8 data bits (LSB first), and 1 stop bit.
+    Simple UART transmitter.
+    Sends one start bit, eight data bits (LSB first), and one stop bit.
 */
 
 module uart_tx #(
