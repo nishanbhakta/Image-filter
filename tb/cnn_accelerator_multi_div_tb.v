@@ -1,5 +1,6 @@
 /*
   Testbench for the CNN accelerator variant that uses five parallel dividers.
+  This variant improves throughput by parallelizing division operations.
   The stimulus checks functional correctness across a few representative cases
   while exercising the divider scheduling path.
 */
