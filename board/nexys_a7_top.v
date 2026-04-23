@@ -1,5 +1,6 @@
 /*
   Nexys A7 board wrapper for the CNN accelerator demo.
+  This module integrates the CNN accelerator with the Nexys A7 FPGA board.
 
 `ifdef USE_GENERATED_RESULT_ROM
   Generated-result playback mode:
