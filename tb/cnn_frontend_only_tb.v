@@ -1,5 +1,6 @@
 /*
     Compact testbench to verify front-end accelerator outputs (divide-by-9 stage only).
+    Validates the MAC pipeline and initial division stage.
 */
 
 `timescale 1ns / 1ps
