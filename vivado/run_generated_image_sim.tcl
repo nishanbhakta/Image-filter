@@ -1,33 +1,50 @@
 # Usage:
 #   vivado -mode gui -source vivado/run_generated_image_sim.tcl -tclargs generated_data
 #   vivado -mode gui -source vivado/run_generated_image_sim.tcl -tclargs generated_data my_project 100T
+#   vivado -mode gui -source vivado/run_generated_image_sim.tcl -tclargs generated_data my_project 100T --reset-runs
 #
 # Arguments:
 #   1. generated data dir (default: generated_data)
 #   2. simulation project name (default: cnn_generated_image_sim)
 #   3. board variant           (default: 100T, supported: 100T, 50T)
+#   4. optional flag           (--reset-runs to clear synth/impl results first)
 #
 # This script opens or creates a saved Vivado simulation project under
 # vivado_build/, points the testbench at generated image data, launches
 # behavioral simulation, adds common waves, runs the test to completion, and
 # then compares the generated hardware output against the golden CSV.
 
-if {[llength $argv] >= 1} {
-    set generated_data_arg [lindex $argv 0]
+set reset_runs 0
+set positional_args {}
+foreach arg $argv {
+    if {$arg eq "--reset-runs"} {
+        set reset_runs 1
+    } else {
+        lappend positional_args $arg
+    }
+}
+
+if {[llength $positional_args] >= 1} {
+    set generated_data_arg [lindex $positional_args 0]
 } else {
     set generated_data_arg "generated_data"
 }
 
-if {[llength $argv] >= 2} {
-    set project_name [lindex $argv 1]
+if {[llength $positional_args] >= 2} {
+    set project_name [lindex $positional_args 1]
 } else {
     set project_name "cnn_generated_image_sim"
 }
 
-if {[llength $argv] >= 3} {
-    set board_variant [string toupper [lindex $argv 2]]
+if {[llength $positional_args] >= 3} {
+    set board_variant [string toupper [lindex $positional_args 2]]
 } else {
     set board_variant "100T"
+}
+
+if {[llength $positional_args] > 3} {
+    puts "Too many positional arguments. Usage: <generated_data_dir> ?<project_name>? ?<board_variant>? ?--reset-runs?"
+    exit 1
 }
 
 set script_dir [file normalize [file dirname [info script]]]
@@ -178,8 +195,13 @@ set_property verilog_define $sim_defines $sim_fileset
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
 
-catch {reset_run synth_1}
-catch {reset_run impl_1}
+if {$reset_runs} {
+    puts "Resetting synth_1 and impl_1 before launching simulation."
+    catch {reset_run synth_1}
+    catch {reset_run impl_1}
+} else {
+    puts "Preserving existing synth_1 and impl_1 results."
+}
 
 launch_simulation -simset sim_1 -mode behavioral
 restart
@@ -227,5 +249,6 @@ puts "Hardware output CSV: $output_csv"
 puts "Output trace CSV   : $output_trace_csv"
 puts "Comparison CSV     : $comparison_csv"
 puts "Vivado VCD dump    : $vivado_vcd_file"
+puts "Reset synth/impl   : [expr {$reset_runs ? \"yes\" : \"no\"}]"
 puts "Implementation note: the synth top now wraps the generated runner in a constrained Nexys A7 board top, so bitstream generation can target real board pins."
 puts "Inspect the Wave window in Vivado for the full testbench trace."

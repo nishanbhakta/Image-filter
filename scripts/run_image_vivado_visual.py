@@ -79,6 +79,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Generate image files but do not open them in a viewer.",
     )
+    parser.add_argument(
+        "--reset-runs",
+        action="store_true",
+        help="Clear existing Vivado synth/impl run outputs before launch.",
+    )
     return parser.parse_args()
 
 
@@ -160,6 +165,8 @@ def main() -> int:
                 "-tclargs",
                 str(output_dir),
             ]
+            if args.reset_runs:
+                vivado_command.append("--reset-runs")
             print("Step 2/3: Launch Vivado", flush=True)
             print(
                 "  " + " ".join(f'"{item}"' if " " in item else item for item in vivado_command),

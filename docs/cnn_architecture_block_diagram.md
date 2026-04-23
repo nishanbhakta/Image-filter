@@ -1,4 +1,4 @@
-# CNN Architecture Block Diagram
+﻿# CNN Architecture Block Diagram
 
 This document describes the current RTL that is actually used by the passing top-level flow in this repository.
 
@@ -302,8 +302,102 @@ That path is useful for the board demo because:
 - the display shows the most recent result immediately
 - the FIFO decouples accelerator completion from UART byte-by-byte transmit latency
 
-## 5. Short Summary
+## 5. Performance And Utilization
+
+For whole-project metrics, the most representative implemented top in this repo is:
+- `nexys_a7_generated_image_top`
+
+Why this top was chosen:
+- it includes the accelerator
+- it includes the generated-image runner/control logic
+- it includes on-chip result storage and board display logic
+- it is a true routed top-level build, unlike the tiny `USE_GENERATED_RESULT_ROM` playback build in `vivado/create_project.tcl`
+
+Reports used:
+- `vivado_build/cnn_generated_image_sim/cnn_generated_image_sim.runs/impl_1/nexys_a7_generated_image_top_timing_summary_routed.rpt`
+- `vivado_build/cnn_generated_image_sim/cnn_generated_image_sim.runs/impl_1/nexys_a7_generated_image_top_utilization_placed.rpt`
+
+Assumptions used for the performance table:
+- Latency is measured per generated 3x3 window, not per entire image.
+- The runner adds a small amount of sequencing overhead around the accelerator, so the effective window latency is about `94` cycles.
+- The implemented routed design does **not** meet `100 MHz`; reported `WNS = -4.475 ns` gives an approximate `Fmax = 69.1 MHz`.
+
+### 5.1 Performance Metrics
+
+| Metric | Value |
+|---|---|
+| Latency | `~94 cycles` per generated window, which is `~1.361 us` at approximate `69.1 MHz` |
+| Throughput | `~1 window / 94 cycles` = `~0.735 Mwindow/s` at approximate `69.1 MHz` |
+| Frequency | `100 MHz` target is **not met**; routed `WNS = -4.475 ns`, approximate `Fmax = 69.1 MHz` |
+
+Optional derived values:
+- If the same design were forced to `100 MHz`, the same `~94`-cycle latency would be `~0.94 us`, but the current routed timing report shows that clock target is not met.
+- At `100 MHz`, the nominal initiation rate would be `~1.064 Mwindow/s`, again assuming timing were closed.
+
+### 5.2 Resource Utilization
+
+| Resource | Usage |
+|---|---|
+| LUT | `2376` |
+| FF | `2741` |
+| BRAM | `4.5 Block RAM Tiles` (`9 x RAMB18`) |
+| DSP | `53` |
+
+Utilization context on `xc7a100tcsg324-1`:
+- LUT utilization: `3.75%`
+- FF utilization: `2.16%`
+- BRAM utilization: `3.33%`
+- DSP utilization: `22.08%`
+
+### 5.3 Functional Metrics
+
+These functional metrics are based on the current verification artifacts in the repo:
+- `generated_data/output_comparison.csv`
+- `tb/data/cnn_complex_vectors.csv`
+- a fresh `sim.bat cnn_csv` regression run on `2026-04-23`
+
+| Metric | Value |
+|---|---|
+| Accuracy | `100.00%` on the latest generated-image dataset: `676/676` output samples matched the golden reference |
+| Error rate | `0 / 676` mismatches on `generated_data/output_comparison.csv` |
+| Output quality | Bit-exact to the golden feature map on the verified dataset: `MAE = 0`, `RMSE = 0`, `Max abs error = 0` |
+| Instruction Supported | Not an instruction-set processor; this is a fixed-function accelerator that supports one signed 3x3 window operation per `start`: `result = trunc_toward_zero(trunc_toward_zero(sum(xi*hi)/9)/scale_factor)` |
+| Pipeline Correctness | `Yes` for the verified staged single-patch schedule; it is functionally correct in the tested flow, but it is **not** a fully overlapped inter-patch streaming pipeline |
+
+Extra verification note:
+- The current CSV regression also passed `8/8` cases with `100.00%` accuracy and zero observed arithmetic error.
+
+### 5.4 Core-Only Reference
+
+If you also want the compute core without the board/image wrapper, the earlier core-only `cnn_accelerator` synthesis report gives:
+- LUT: `4433`
+- FF: `3532`
+- BRAM: `0`
+- DSP: `0`
+- `100 MHz` met with `WNS = +3.472 ns`
+
+That core-only reference is useful for arithmetic-block discussion, but the whole-project tables above are the better fit for a full-system report.
+
+### 5.5 Bottlenecks
+
+- Timing bottleneck: In the routed whole-project top (`nexys_a7_generated_image_top`), the worst setup path is inside `generated_runner_inst/dut/div9_inst`, so the current `divide_by_9_Version2` implementation is the main frequency limiter at the system level.
+- Latency bottleneck: The final `divider_Version2` stage uses a `WIDTH = 72` iterative signed divider, so it contributes about `72` cycles by itself and dominates end-to-end window latency.
+- Throughput bottleneck: The verified control flow is one-window-at-a-time. The next patch is not launched until the current patch finishes, so the initiation interval is close to the full latency.
+- System bottleneck: `cnn_generated_image_runner` uses `LOAD -> START -> WAIT -> DONE` sequencing for every window, which is simple and correct but prevents inter-window streaming overlap.
+- Timing-closure bottleneck: The whole-project routed build misses `100 MHz` with `WNS = -4.475 ns`, so practical system throughput is limited by timing closure, not just by algorithmic cycle count.
+
+### 5.6 Performance Insights
+
+- The multiply/reduction front-end is relatively fast: 9 products are launched in parallel and reduced in a few stages, so convolution itself is not the dominant cost.
+- The normalization backend is the expensive part: `/9` limits clock frequency, while the final `/scale_factor` divider limits latency.
+- There is a clear mismatch between computation style and control style: the datapath has internal staging, but the external schedule is still serialized per patch.
+- Resource usage shows where performance is being spent: the whole-project build uses `53 DSPs` and `9 RAMB18` blocks, which is consistent with a parallel arithmetic front-end plus stored generated-image data/results.
+- If performance is the goal, the best payoff would come from optimizing or further pipelining `divide_by_9_Version2`, reducing or parallelizing the final divider, or adopting the repo's alternate multi-divider direction in `src/cnn_accelerator_multi_div.v`.
+- If timing closure at `100 MHz` is the goal, the first place to focus is the `div9_inst` critical path reported by Vivado, not the display or UART logic.
+
+## 6. Short Summary
 
 If you need one sentence for the project report, this repo currently implements:
 
 > A 3-stage reduction datapath around 9 parallel signed multipliers, followed by a 4-stage divide-by-9 block and a wide iterative final divider, all sequenced by a pulse-based controller and wrapped by board/image replay logic.
+
