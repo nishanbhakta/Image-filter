@@ -1,5 +1,6 @@
 /*
-  Test original accelerator to verify it still works
+    Regression smoke test for the original accelerator configuration.
+    Keeps INCLUDE_FINAL_DIVIDER enabled and checks legacy end-to-end behavior.
 */
 
 `timescale 1ns / 1ps
@@ -51,7 +52,7 @@ module cnn_accel_original_tb;
         rst = 0;
         repeat (5) @(posedge clk);
         
-        // Test case: All ones
+        // Directed case: all-ones input/kernel should produce a deterministic baseline result.
         $display("Test: All ones with INCLUDE_FINAL_DIVIDER=1 (original behavior)");
         begin
             integer i;
@@ -65,7 +66,7 @@ module cnn_accel_original_tb;
             @(posedge clk);
             start = 0;
             
-            // Wait for output
+            // Wait long enough for the full pipelined datapath to complete.
             repeat (120) @(posedge clk);
             
             if (done) begin

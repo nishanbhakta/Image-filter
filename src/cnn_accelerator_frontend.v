@@ -1,8 +1,8 @@
 /*
-  CNN Hardware Accelerator - without final divider stage
-  Outputs divide-by-9 result for external divider parallelization
-  
-  Output = (sum(xi * hi)) / 9
+    CNN hardware accelerator front end (no final scale division stage).
+    Exposes the divide-by-9 output so downstream divider lanes can run in parallel.
+
+    Datapath output: (sum(xi * hi)) / 9
 */
 
 module cnn_accelerator_frontend #(
@@ -95,20 +95,20 @@ module cnn_accelerator_frontend #(
             mult_start_reg <= 1'b0;
             div9_start_reg <= 1'b0;
 
-            // When divide-by-9 completes, capture the scale factor for output
+            // On div-by-9 completion, publish the aligned scale factor.
             if (div9_done_wire) begin
                 result_scale_factor <= sum_scale_reg;
                 div9_busy <= 1'b0;
             end
 
-            // Launch divide-by-9 when sum is ready
+            // Start div-by-9 once a summed patch is available and the unit is idle.
             if (sum_valid && !div9_busy) begin
                 div9_start_reg <= 1'b1;
                 div9_busy <= 1'b1;
                 sum_valid <= 1'b0;
             end
 
-            // Latch multiplier results when all multiplies complete
+            // Capture the reduction sum after all multiplier lanes assert done.
             if (all_mult_done && mul_busy) begin
                 sum_reg <= sum_from_mult;
                 sum_scale_reg <= mul_scale_reg;
@@ -116,7 +116,7 @@ module cnn_accelerator_frontend #(
                 mul_busy <= 1'b0;
             end
 
-            // Launch multipliers when start pulse is received
+            // Accept a new request and issue a one-cycle start pulse to all multipliers.
             if (start && !mul_busy) begin
                 mul_scale_reg <= scale_factor;
                 mult_start_reg <= 1'b1;
