@@ -21,6 +21,7 @@ module controller (
     output reg [3:0] state
 );
 
+    // One-cycle delayed handshake signals that advance the datapath.
     reg mult_done_d1;
     reg stage2_en_d1;
     reg stage3_en_d1;
@@ -42,6 +43,7 @@ module controller (
             div9_done_d1 <= 1'b0;
             div_done_d1 <= 1'b0;
         end else begin
+            // Emit one-cycle enables that move data from one stage to the next.
             mult_start <= start;
             stage2_en <= mult_done_d1;
             stage3_en <= stage2_en_d1;
@@ -49,12 +51,14 @@ module controller (
             div_start <= div9_done_d1;
             output_valid <= div_done_d1;
 
+            // Delay completion pulses so the controller can generate clean starts.
             mult_done_d1 <= mult_done;
             stage2_en_d1 <= stage2_en;
             stage3_en_d1 <= stage3_en;
             div9_done_d1 <= div9_done;
             div_done_d1 <= div_done;
 
+            // Expose a compact view of pipeline activity for debug/bring-up.
             state <= {div_done_d1, div9_done_d1, stage3_en_d1, stage2_en_d1};
         end
     end
