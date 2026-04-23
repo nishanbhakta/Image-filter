@@ -159,6 +159,79 @@ Latency note:
 - The dominant stage is the final 72-bit divider.
 - In practice, the current RTL behaves much closer to a roughly 90-cycle single-patch path than to a short fully overlapped streaming pipeline.
 
+## 2A. Long Timing Diagram For The Most Important Path (>40 Cycles)
+
+The most important timing path in the current design is the single-patch top-level accelerator schedule, because it includes the latency-dominant 72-bit final divider.
+
+Reference point:
+- Cycle `0` is the rising clock edge where `controller_Version2` captures a clean `start` pulse.
+- `^` = single-cycle pulse/event.
+- `=` = block busy/active for multiple cycles.
+
+```text
+Cycle idx        : 00   05   10   15   20   25   30   35   40   45   50   55   60   65   70   75   80   85
+Marker           : |....|....|....|....|....|....|....|....|....|....|....|....|....|....|....|....|....|....|
+start(captured)  : ^------------------------------------------------------------------------------------------
+mult_start       : ^------------------------------------------------------------------------------------------
+mult_launch      : -^-----------------------------------------------------------------------------------------
+all_mult_done    : --^----------------------------------------------------------------------------------------
+stage1_cap       : ---^---------------------------------------------------------------------------------------
+stage2_en        : ----^--------------------------------------------------------------------------------------
+stage2_cap       : -----^-------------------------------------------------------------------------------------
+stage3_en        : ------^------------------------------------------------------------------------------------
+stage3_cap       : -------^-----------------------------------------------------------------------------------
+div9_start       : --------^----------------------------------------------------------------------------------
+div9_busy        : ---------====------------------------------------------------------------------------------
+div9_done        : -------------^-----------------------------------------------------------------------------
+div_start        : ---------------^---------------------------------------------------------------------------
+div_busy         : ----------------========================================================================---
+div_done         : ----------------------------------------------------------------------------------------^--
+result_cap       : -----------------------------------------------------------------------------------------^-
+done             : ------------------------------------------------------------------------------------------^
+```
+
+The compact axis labels stop at `85`, but the final pulse shown at the far right is cycle `90`.
+
+### Key cycle events
+
+| Cycle | What happens |
+|---|---|
+| 0 | `start` is captured by `controller`; `mult_start` is asserted for one control cycle |
+| 1 | 9 parallel multipliers actually launch |
+| 2 | `all_mult_done` goes high |
+| 3 | `stage1_products[]` registers capture all 9 sign-extended products |
+| 4 | `stage2_en` pulse |
+| 5 | `stage2_partial[]` registers capture the 3 grouped sums |
+| 6 | `stage3_en` pulse |
+| 7 | `stage3_sum` register captures the final accumulated 72-bit sum |
+| 8 | `div9_start` pulse |
+| 9 to 12 | `divide_by_9_Version2` pipeline is active |
+| 13 | `div9_done` pulse |
+| 15 | `div_start` pulse to the final 72-bit divider |
+| 16 to 87 | `divider_Version2` iterative loop is busy for 72 cycles |
+| 88 | `div_done` pulse |
+| 89 | `result_reg` captures the final quotient |
+| 90 | top-level `done` / `output_valid` pulse |
+
+### Why This Diagram Is Longer Than 40 Cycles
+
+The front-end multiply/reduction path is short. The schedule becomes long because:
+- `divide_by_9_Version2` adds 4 pipeline cycles
+- `divider_Version2` runs for `WIDTH = 72` cycles in the top-level instance
+- the registered controller inserts additional cycle boundaries between major stages
+
+So the effective single-patch latency is about 90 cycles from captured `start` to asserted `done`.
+
+### Divider-Focused Timing Summary
+
+Since the final divider is the latency bottleneck, its local timing is:
+
+| Divider-local cycle | Event |
+|---|---|
+| 0 | `start` sampled, operands loaded, `busy` asserted, `count_reg = 72` |
+| 1 to 71 | iterative non-restoring update of `remainder_reg`, `quotient_abs_reg`, `dividend_shift_reg`, and `count_reg` |
+| 72 | final quotient/remainder written, `done = 1`, `busy = 0` |
+
 ## 3. Generated-Image Replay And Board Flow
 
 This is the higher-level system used when the repo replays a real image that has been preprocessed into 3x3 windows.
