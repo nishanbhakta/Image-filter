@@ -1,5 +1,6 @@
 /*
   Nexys A7 board wrapper for the generated-image runner.
+  This wrapper facilitates testing with pre-computed results.
   - SW[0] selects the button action:
       0 = BTN U starts one full generated-image pass
       1 = BTN U advances to the next stored output sample
