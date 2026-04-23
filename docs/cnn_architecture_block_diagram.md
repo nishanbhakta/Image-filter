@@ -163,6 +163,15 @@ Latency note:
 
 The most important timing path in the current design is the single-patch top-level accelerator schedule, because it includes the latency-dominant 72-bit final divider.
 
+For a cleaner report-style figure, this datasheet-like timing diagram shows two back-to-back patches:
+
+![CNN two-patch timing diagram](assets/cnn_timing_two_patch.svg)
+
+How to read the second patch:
+- Patch 0 asserts top-level `DONE` on cycle `90`.
+- Patch 1 is shown starting on cycle `91`, which is the earliest clean back-to-back relaunch point in the verified one-patch-at-a-time schedule.
+- Its control pulses repeat with the same offsets, so Patch 1 reaches `DONE` on cycle `181`.
+
 Reference point:
 - Cycle `0` is the rising clock edge where `controller_Version2` captures a clean `start` pulse.
 - `^` = single-cycle pulse/event.

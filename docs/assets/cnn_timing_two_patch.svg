@@ -1,0 +1,131 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns='http://www.w3.org/2000/svg' width='1392' height='724' viewBox='0 0 1392 724'>
+  <rect x='0' y='0' width='1392' height='724' fill='white'/>
+  <style>
+    .title { font: 700 22px Arial, Helvetica, sans-serif; fill: #111; }
+    .subtitle { font: 12px Arial, Helvetica, sans-serif; fill: #444; }
+    .label { font: 700 12px Arial, Helvetica, sans-serif; fill: #111; }
+    .axis { font: 11px Arial, Helvetica, sans-serif; fill: #333; }
+    .note { font: 12px Arial, Helvetica, sans-serif; fill: #222; }
+    .gridMinor { stroke: #e8e8e8; stroke-width: 1; }
+    .gridMajor { stroke: #cfcfcf; stroke-width: 1.2; }
+    .wave { fill: none; stroke: #111; stroke-width: 2.1; stroke-linejoin: miter; stroke-linecap: square; }
+    .patchFill0 { fill: #f2f2f2; }
+    .patchFill1 { fill: #fafafa; }
+    .patchBar { fill: #d9d9d9; stroke: #111; stroke-width: 1.2; }
+    .special { stroke: #777; stroke-width: 1.4; stroke-dasharray: 5 4; }
+    .tick { stroke: #111; stroke-width: 1; }
+  </style>
+  <text x='40' y='40' class='title'>CNN ACCELERATOR TIMING DIAGRAM</text>
+  <text x='40' y='62' class='subtitle'>Two back-to-back patches on cnn_accelerator_Version2; cycle 0 = start captured, Patch 1 starts at the earliest safe cycle after Patch 0 done.</text>
+  <line x1='40' y1='76' x2='1352' y2='76' stroke='#111' stroke-width='1.2'/>
+  <rect x='220' y='98' width='546' height='492' class='patchFill0'/>
+  <rect x='766' y='98' width='546' height='492' class='patchFill1'/>
+  <line x1='220' y1='98' x2='220' y2='584' class='gridMajor'/>
+  <text x='214' y='92' class='axis'>0</text>
+  <line x1='250' y1='98' x2='250' y2='584' class='gridMinor'/>
+  <line x1='280' y1='98' x2='280' y2='584' class='gridMajor'/>
+  <text x='274' y='92' class='axis'>10</text>
+  <line x1='310' y1='98' x2='310' y2='584' class='gridMinor'/>
+  <line x1='340' y1='98' x2='340' y2='584' class='gridMajor'/>
+  <text x='334' y='92' class='axis'>20</text>
+  <line x1='370' y1='98' x2='370' y2='584' class='gridMinor'/>
+  <line x1='400' y1='98' x2='400' y2='584' class='gridMajor'/>
+  <text x='394' y='92' class='axis'>30</text>
+  <line x1='430' y1='98' x2='430' y2='584' class='gridMinor'/>
+  <line x1='460' y1='98' x2='460' y2='584' class='gridMajor'/>
+  <text x='454' y='92' class='axis'>40</text>
+  <line x1='490' y1='98' x2='490' y2='584' class='gridMinor'/>
+  <line x1='520' y1='98' x2='520' y2='584' class='gridMajor'/>
+  <text x='514' y='92' class='axis'>50</text>
+  <line x1='550' y1='98' x2='550' y2='584' class='gridMinor'/>
+  <line x1='580' y1='98' x2='580' y2='584' class='gridMajor'/>
+  <text x='574' y='92' class='axis'>60</text>
+  <line x1='610' y1='98' x2='610' y2='584' class='gridMinor'/>
+  <line x1='640' y1='98' x2='640' y2='584' class='gridMajor'/>
+  <text x='634' y='92' class='axis'>70</text>
+  <line x1='670' y1='98' x2='670' y2='584' class='gridMinor'/>
+  <line x1='700' y1='98' x2='700' y2='584' class='gridMajor'/>
+  <text x='694' y='92' class='axis'>80</text>
+  <line x1='730' y1='98' x2='730' y2='584' class='gridMinor'/>
+  <line x1='760' y1='98' x2='760' y2='584' class='gridMajor'/>
+  <text x='754' y='92' class='axis'>90</text>
+  <line x1='790' y1='98' x2='790' y2='584' class='gridMinor'/>
+  <line x1='820' y1='98' x2='820' y2='584' class='gridMajor'/>
+  <text x='814' y='92' class='axis'>100</text>
+  <line x1='850' y1='98' x2='850' y2='584' class='gridMinor'/>
+  <line x1='880' y1='98' x2='880' y2='584' class='gridMajor'/>
+  <text x='874' y='92' class='axis'>110</text>
+  <line x1='910' y1='98' x2='910' y2='584' class='gridMinor'/>
+  <line x1='940' y1='98' x2='940' y2='584' class='gridMajor'/>
+  <text x='934' y='92' class='axis'>120</text>
+  <line x1='970' y1='98' x2='970' y2='584' class='gridMinor'/>
+  <line x1='1000' y1='98' x2='1000' y2='584' class='gridMajor'/>
+  <text x='994' y='92' class='axis'>130</text>
+  <line x1='1030' y1='98' x2='1030' y2='584' class='gridMinor'/>
+  <line x1='1060' y1='98' x2='1060' y2='584' class='gridMajor'/>
+  <text x='1054' y='92' class='axis'>140</text>
+  <line x1='1090' y1='98' x2='1090' y2='584' class='gridMinor'/>
+  <line x1='1120' y1='98' x2='1120' y2='584' class='gridMajor'/>
+  <text x='1114' y='92' class='axis'>150</text>
+  <line x1='1150' y1='98' x2='1150' y2='584' class='gridMinor'/>
+  <line x1='1180' y1='98' x2='1180' y2='584' class='gridMajor'/>
+  <text x='1174' y='92' class='axis'>160</text>
+  <line x1='1210' y1='98' x2='1210' y2='584' class='gridMinor'/>
+  <line x1='1240' y1='98' x2='1240' y2='584' class='gridMajor'/>
+  <text x='1234' y='92' class='axis'>170</text>
+  <line x1='1270' y1='98' x2='1270' y2='584' class='gridMinor'/>
+  <line x1='1300' y1='98' x2='1300' y2='584' class='gridMajor'/>
+  <text x='1294' y='92' class='axis'>180</text>
+  <line x1='220' y1='98' x2='220' y2='584' class='special'/>
+  <line x1='766' y1='98' x2='766' y2='584' class='special'/>
+  <line x1='1306' y1='98' x2='1306' y2='584' class='special'/>
+  <text x='228' y='108' class='axis'>Patch 0</text>
+  <text x='774' y='108' class='axis'>Patch 1</text>
+  <text x='721' y='610' class='axis'>P0 done @ 90</text>
+  <text x='772' y='628' class='axis'>P1 start @ 91</text>
+  <text x='36' y='123' class='label'>PATCH</text>
+  <rect x='220' y='110' width='544' height='18' class='patchBar'/>
+  <text x='420' y='123' class='axis'>Patch 0 active</text>
+  <rect x='766' y='110' width='544' height='18' class='patchBar'/>
+  <text x='966' y='123' class='axis'>Patch 1 active</text>
+  <line x1='220' y1='166' x2='1312' y2='166' stroke='#999' stroke-width='0.6'/>
+  <line x1='220' y1='204' x2='1312' y2='204' stroke='#999' stroke-width='0.6'/>
+  <line x1='220' y1='242' x2='1312' y2='242' stroke='#999' stroke-width='0.6'/>
+  <line x1='220' y1='280' x2='1312' y2='280' stroke='#999' stroke-width='0.6'/>
+  <line x1='220' y1='318' x2='1312' y2='318' stroke='#999' stroke-width='0.6'/>
+  <line x1='220' y1='356' x2='1312' y2='356' stroke='#999' stroke-width='0.6'/>
+  <line x1='220' y1='394' x2='1312' y2='394' stroke='#999' stroke-width='0.6'/>
+  <line x1='220' y1='432' x2='1312' y2='432' stroke='#999' stroke-width='0.6'/>
+  <line x1='220' y1='470' x2='1312' y2='470' stroke='#999' stroke-width='0.6'/>
+  <line x1='220' y1='508' x2='1312' y2='508' stroke='#999' stroke-width='0.6'/>
+  <line x1='220' y1='546' x2='1312' y2='546' stroke='#999' stroke-width='0.6'/>
+  <line x1='220' y1='584' x2='1312' y2='584' stroke='#999' stroke-width='0.6'/>
+  <text x='6' y='161' class='label'>CLK</text>
+  <path d='M 220 166 V 148 H 223 V 166 H 226 V 148 H 229 V 166 H 232 V 148 H 235 V 166 H 238 V 148 H 241 V 166 H 244 V 148 H 247 V 166 H 250 V 148 H 253 V 166 H 256 V 148 H 259 V 166 H 262 V 148 H 265 V 166 H 268 V 148 H 271 V 166 H 274 V 148 H 277 V 166 H 280 V 148 H 283 V 166 H 286 V 148 H 289 V 166 H 292 V 148 H 295 V 166 H 298 V 148 H 301 V 166 H 304 V 148 H 307 V 166 H 310 V 148 H 313 V 166 H 316 V 148 H 319 V 166 H 322 V 148 H 325 V 166 H 328 V 148 H 331 V 166 H 334 V 148 H 337 V 166 H 340 V 148 H 343 V 166 H 346 V 148 H 349 V 166 H 352 V 148 H 355 V 166 H 358 V 148 H 361 V 166 H 364 V 148 H 367 V 166 H 370 V 148 H 373 V 166 H 376 V 148 H 379 V 166 H 382 V 148 H 385 V 166 H 388 V 148 H 391 V 166 H 394 V 148 H 397 V 166 H 400 V 148 H 403 V 166 H 406 V 148 H 409 V 166 H 412 V 148 H 415 V 166 H 418 V 148 H 421 V 166 H 424 V 148 H 427 V 166 H 430 V 148 H 433 V 166 H 436 V 148 H 439 V 166 H 442 V 148 H 445 V 166 H 448 V 148 H 451 V 166 H 454 V 148 H 457 V 166 H 460 V 148 H 463 V 166 H 466 V 148 H 469 V 166 H 472 V 148 H 475 V 166 H 478 V 148 H 481 V 166 H 484 V 148 H 487 V 166 H 490 V 148 H 493 V 166 H 496 V 148 H 499 V 166 H 502 V 148 H 505 V 166 H 508 V 148 H 511 V 166 H 514 V 148 H 517 V 166 H 520 V 148 H 523 V 166 H 526 V 148 H 529 V 166 H 532 V 148 H 535 V 166 H 538 V 148 H 541 V 166 H 544 V 148 H 547 V 166 H 550 V 148 H 553 V 166 H 556 V 148 H 559 V 166 H 562 V 148 H 565 V 166 H 568 V 148 H 571 V 166 H 574 V 148 H 577 V 166 H 580 V 148 H 583 V 166 H 586 V 148 H 589 V 166 H 592 V 148 H 595 V 166 H 598 V 148 H 601 V 166 H 604 V 148 H 607 V 166 H 610 V 148 H 613 V 166 H 616 V 148 H 619 V 166 H 622 V 148 H 625 V 166 H 628 V 148 H 631 V 166 H 634 V 148 H 637 V 166 H 640 V 148 H 643 V 166 H 646 V 148 H 649 V 166 H 652 V 148 H 655 V 166 H 658 V 148 H 661 V 166 H 664 V 148 H 667 V 166 H 670 V 148 H 673 V 166 H 676 V 148 H 679 V 166 H 682 V 148 H 685 V 166 H 688 V 148 H 691 V 166 H 694 V 148 H 697 V 166 H 700 V 148 H 703 V 166 H 706 V 148 H 709 V 166 H 712 V 148 H 715 V 166 H 718 V 148 H 721 V 166 H 724 V 148 H 727 V 166 H 730 V 148 H 733 V 166 H 736 V 148 H 739 V 166 H 742 V 148 H 745 V 166 H 748 V 148 H 751 V 166 H 754 V 148 H 757 V 166 H 760 V 148 H 763 V 166 H 766 V 148 H 769 V 166 H 772 V 148 H 775 V 166 H 778 V 148 H 781 V 166 H 784 V 148 H 787 V 166 H 790 V 148 H 793 V 166 H 796 V 148 H 799 V 166 H 802 V 148 H 805 V 166 H 808 V 148 H 811 V 166 H 814 V 148 H 817 V 166 H 820 V 148 H 823 V 166 H 826 V 148 H 829 V 166 H 832 V 148 H 835 V 166 H 838 V 148 H 841 V 166 H 844 V 148 H 847 V 166 H 850 V 148 H 853 V 166 H 856 V 148 H 859 V 166 H 862 V 148 H 865 V 166 H 868 V 148 H 871 V 166 H 874 V 148 H 877 V 166 H 880 V 148 H 883 V 166 H 886 V 148 H 889 V 166 H 892 V 148 H 895 V 166 H 898 V 148 H 901 V 166 H 904 V 148 H 907 V 166 H 910 V 148 H 913 V 166 H 916 V 148 H 919 V 166 H 922 V 148 H 925 V 166 H 928 V 148 H 931 V 166 H 934 V 148 H 937 V 166 H 940 V 148 H 943 V 166 H 946 V 148 H 949 V 166 H 952 V 148 H 955 V 166 H 958 V 148 H 961 V 166 H 964 V 148 H 967 V 166 H 970 V 148 H 973 V 166 H 976 V 148 H 979 V 166 H 982 V 148 H 985 V 166 H 988 V 148 H 991 V 166 H 994 V 148 H 997 V 166 H 1000 V 148 H 1003 V 166 H 1006 V 148 H 1009 V 166 H 1012 V 148 H 1015 V 166 H 1018 V 148 H 1021 V 166 H 1024 V 148 H 1027 V 166 H 1030 V 148 H 1033 V 166 H 1036 V 148 H 1039 V 166 H 1042 V 148 H 1045 V 166 H 1048 V 148 H 1051 V 166 H 1054 V 148 H 1057 V 166 H 1060 V 148 H 1063 V 166 H 1066 V 148 H 1069 V 166 H 1072 V 148 H 1075 V 166 H 1078 V 148 H 1081 V 166 H 1084 V 148 H 1087 V 166 H 1090 V 148 H 1093 V 166 H 1096 V 148 H 1099 V 166 H 1102 V 148 H 1105 V 166 H 1108 V 148 H 1111 V 166 H 1114 V 148 H 1117 V 166 H 1120 V 148 H 1123 V 166 H 1126 V 148 H 1129 V 166 H 1132 V 148 H 1135 V 166 H 1138 V 148 H 1141 V 166 H 1144 V 148 H 1147 V 166 H 1150 V 148 H 1153 V 166 H 1156 V 148 H 1159 V 166 H 1162 V 148 H 1165 V 166 H 1168 V 148 H 1171 V 166 H 1174 V 148 H 1177 V 166 H 1180 V 148 H 1183 V 166 H 1186 V 148 H 1189 V 166 H 1192 V 148 H 1195 V 166 H 1198 V 148 H 1201 V 166 H 1204 V 148 H 1207 V 166 H 1210 V 148 H 1213 V 166 H 1216 V 148 H 1219 V 166 H 1222 V 148 H 1225 V 166 H 1228 V 148 H 1231 V 166 H 1234 V 148 H 1237 V 166 H 1240 V 148 H 1243 V 166 H 1246 V 148 H 1249 V 166 H 1252 V 148 H 1255 V 166 H 1258 V 148 H 1261 V 166 H 1264 V 148 H 1267 V 166 H 1270 V 148 H 1273 V 166 H 1276 V 148 H 1279 V 166 H 1282 V 148 H 1285 V 166 H 1288 V 148 H 1291 V 166 H 1294 V 148 H 1297 V 166 H 1300 V 148 H 1303 V 166 H 1306 V 148 H 1309 V 166 H 1312' class='wave'/>
+  <text x='6' y='199' class='label'>START</text>
+  <path d='M 220 204 H 220 V 186 H 226 V 204 H 766 V 186 H 772 V 204 H 1312' class='wave'/>
+  <text x='6' y='237' class='label'>MULT_START</text>
+  <path d='M 220 242 H 220 V 224 H 226 V 242 H 766 V 224 H 772 V 242 H 1312' class='wave'/>
+  <text x='6' y='275' class='label'>ALL_MULT_DONE</text>
+  <path d='M 220 280 H 232 V 262 H 238 V 280 H 778 V 262 H 784 V 280 H 1312' class='wave'/>
+  <text x='6' y='313' class='label'>STAGE2_EN</text>
+  <path d='M 220 318 H 244 V 300 H 250 V 318 H 790 V 300 H 796 V 318 H 1312' class='wave'/>
+  <text x='6' y='351' class='label'>STAGE3_EN</text>
+  <path d='M 220 356 H 256 V 338 H 262 V 356 H 802 V 338 H 808 V 356 H 1312' class='wave'/>
+  <text x='6' y='389' class='label'>DIV9_START</text>
+  <path d='M 220 394 H 268 V 376 H 274 V 394 H 814 V 376 H 820 V 394 H 1312' class='wave'/>
+  <text x='6' y='427' class='label'>DIV9_DONE</text>
+  <path d='M 220 432 H 298 V 414 H 304 V 432 H 844 V 414 H 850 V 432 H 1312' class='wave'/>
+  <text x='6' y='465' class='label'>DIV_START</text>
+  <path d='M 220 470 H 310 V 452 H 316 V 470 H 856 V 452 H 862 V 470 H 1312' class='wave'/>
+  <text x='6' y='503' class='label'>DIV_BUSY</text>
+  <path d='M 220 508 H 316 V 490 H 748 V 508 H 862 V 490 H 1294 V 508 H 1312' class='wave'/>
+  <text x='6' y='541' class='label'>RESULT_REG</text>
+  <path d='M 220 546 H 754 V 528 H 760 V 546 H 1300 V 528 H 1306 V 546 H 1312' class='wave'/>
+  <text x='6' y='579' class='label'>DONE</text>
+  <path d='M 220 584 H 760 V 566 H 766 V 584 H 1306 V 566 H 1312 V 584 H 1312' class='wave'/>
+  <text x='736' y='522' class='axis'>cap P0</text>
+  <text x='1282' y='522' class='axis'>cap P1</text>
+  <text x='40' y='656' class='note'>NOTE: This figure shows the verified one-patch-at-a-time schedule. Patch 1 is relaunched on cycle 91, the first clean cycle after Patch 0 asserts DONE on cycle 90.</text>
+</svg>
