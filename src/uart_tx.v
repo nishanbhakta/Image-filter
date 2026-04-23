@@ -1,5 +1,5 @@
 /*
-    Simple UART transmitter.
+    Minimal UART transmitter.
     Sends one start bit, eight data bits (LSB first), and one stop bit.
 */
 
