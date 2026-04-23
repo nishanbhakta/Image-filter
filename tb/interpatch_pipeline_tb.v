@@ -1,5 +1,7 @@
 `timescale 1ns/1ps
 
+// Interpatch pipeline testbench
+// Validates multi-patch processing through the accelerator pipeline
 module interpatch_pipeline_tb;
 
     parameter WIDTH = 32;
